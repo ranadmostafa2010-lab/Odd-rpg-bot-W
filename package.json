@@ -1,6 +1,6 @@
 
 # Create package.json
-package_json = '''{
+package_json = {
   "name": "odd-rpg-baileys",
   "version": "2.0.0",
   "description": "ODD RPG WhatsApp Bot - Multiplayer Edition with Baileys for Termux",
