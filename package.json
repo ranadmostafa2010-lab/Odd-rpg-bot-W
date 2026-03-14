@@ -1,5 +1,4 @@
-
-package_json = """{
+{
   "name": "odd-rpg-baileys",
   "version": "2.0.0",
   "description": "ODD RPG WhatsApp Bot - Multiplayer Edition with Baileys for Termux",
@@ -43,9 +42,4 @@ package_json = """{
   "engines": {
     "node": ">=18.0.0"
   }
-}"""
-
-with open('/mnt/kimi/output/odd-rpg-baileys/package.json', 'w') as f:
-    f.write(package_json)
-
-print("✅ 1. package.json created")
+}
