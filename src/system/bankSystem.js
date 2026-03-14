@@ -1,194 +1,330 @@
-
-bank_system = """const moment = require('moment');
-const chalk = require('chalk');
+const GameEngine = require('../core/gameEngine');
+const Database = require('../core/database');
+const Helpers = require('../utils/helpers');
 
 class BankSystem {
-    constructor(db, gameEngine) {
-        this.db = db;
-        this.game = gameEngine;
+    static async handle(sock, phone, jid, args) {
+        const subcommand = args[0]?.toLowerCase();
+        
+        switch(subcommand) {
+            case 'deposit':
+            case 'dep':
+            case 'd':
+                await this.deposit(sock, phone, jid, args[1]);
+                break;
+                
+            case 'withdraw':
+            case 'wd':
+            case 'w':
+                await this.withdraw(sock, phone, jid, args[1]);
+                break;
+                
+            case 'upgrade':
+            case 'up':
+            case 'u':
+                await this.upgrade(sock, phone, jid);
+                break;
+                
+            case 'interest':
+            case 'rate':
+                await this.showInterest(sock, phone, jid);
+                break;
+                
+            case 'history':
+            case 'log':
+                await this.history(sock, phone, jid);
+                break;
+                
+            case 'transfer':
+            case 'send':
+                await this.transfer(sock, phone, jid, args.slice(1));
+                break;
+                
+            default:
+                await this.showBalance(sock, phone, jid);
+        }
     }
-
-    async getBankInfo(player) {
-        const tierInfo = this.game.getBankTierInfo(player.bank_tier);
-        const interest = this.game.calculateInterest(player.bank_balance, player.bank_tier);
+    
+    static async showBalance(sock, phone, jid) {
+        const player = GameEngine.getPlayer(phone);
+        const config = global.gameConfig;
+        const tier = Helpers.getBankTier(player.bank_tier);
+        const nextTier = config.bankTiers[player.bank_tier];
         
-        return {
-            tier: tierInfo,
-            balance: player.bank_balance,
-            maxBalance: tierInfo.max_balance,
-            interestRate: tierInfo.interest,
-            dailyInterest: interest,
-            wallet: player.points
-        };
+        const percent = Math.min(100, (player.bank_points / tier.maxStorage) * 100);
+        const interest = Math.floor(player.bank_points * tier.interestRate);
+        
+        let text = `🏦 *Bank Account*\n\n`;
+        text += `👤 ${player.name}\n`;
+        text += `📊 Tier: ${tier.tier} ${nextTier ? `(Next: Tier ${tier.tier + 1})` : '(MAX)'}\n`;
+        text += `💰 Balance: ${Helpers.formatNumber(player.bank_points)} / ${Helpers.formatNumber(tier.maxStorage)}\n`;
+        text += `${Helpers.progressBar(player.bank_points, tier.maxStorage, 15)} ${percent.toFixed(1)}%\n\n`;
+        
+        text += `📈 Interest Rate: ${(tier.interestRate * 100).toFixed(0)}% daily\n`;
+        text += `   ≈ ${Helpers.formatNumber(interest)} pts/day\n\n`;
+        
+        if (nextTier) {
+            text += `⬆️ Upgrade Cost: ${Helpers.formatNumber(tier.upgradeCost)} points\n`;
+            text += `   New Limit: ${Helpers.formatNumber(nextTier.maxStorage)}\n`;
+            text += `   New Rate: ${(nextTier.interestRate * 100).toFixed(0)}%\n\n`;
+        }
+        
+        text += `💵 Wallet: ${Helpers.formatNumber(player.points)}\n\n`;
+        
+        text += `*Commands:*\n`;
+        text += `/bank deposit [amount] - Store points\n`;
+        text += `/bank withdraw [amount] - Take points\n`;
+        if (nextTier) text += `/bank upgrade - Increase tier\n`;
+        text += `/bank interest - See rates`;
+        
+        await sock.sendMessage(jid, { text });
     }
-
-    async deposit(player, amount) {
-        amount = parseInt(amount);
+    
+    static async deposit(sock, phone, jid, amount) {
+        if (!amount) {
+            return sock.sendMessage(jid, { text: `Usage: /bank deposit [amount] or /bank deposit all` });
+        }
         
-        if (isNaN(amount) || amount <= 0) {
-            return { error: 'Invalid amount!' };
-        }
-
-        if (player.points < amount) {
-            return { error: `Insufficient funds! You have ${player.points.toLocaleString()} points.` };
-        }
-
-        const tierInfo = this.game.getBankTierInfo(player.bank_tier);
+        const player = GameEngine.getPlayer(phone);
+        const config = global.gameConfig;
+        const tier = Helpers.getBankTier(player.bank_tier);
         
-        if (player.bank_balance + amount > tierInfo.max_balance) {
-            return {
-                error: `Deposit would exceed your ${tierInfo.name} tier limit of ${tierInfo.max_balance.toLocaleString()} points! Upgrade your bank tier.`
-            };
+        let depositAmount;
+        if (amount.toLowerCase() === 'all') {
+            depositAmount = player.points;
+        } else {
+            depositAmount = parseInt(amount.replace(/,/g, ''));
         }
-
-        // Execute deposit
-        await this.db.updatePlayer(player.phone, {
-            points: player.points - amount,
-            bank_balance: player.bank_balance + amount
+        
+        if (!depositAmount || depositAmount <= 0) {
+            return sock.sendMessage(jid, { text: '❌ Invalid amount' });
+        }
+        
+        if (player.points < depositAmount) {
+            return sock.sendMessage(jid, { 
+                text: `❌ Insufficient funds!\nWallet: ${Helpers.formatNumber(player.points)}\nDeposit: ${Helpers.formatNumber(depositAmount)}` 
+            });
+        }
+        
+        const availableSpace = tier.maxStorage - player.bank_points;
+        if (depositAmount > availableSpace) {
+            return sock.sendMessage(jid, { 
+                text: `❌ Not enough storage space!\nAvailable: ${Helpers.formatNumber(availableSpace)}\nUpgrade your bank tier for more space.` 
+            });
+        }
+        
+        // Perform deposit
+        GameEngine.updatePlayer(phone, {
+            points: player.points - depositAmount,
+            bank_points: player.bank_points + depositAmount
         });
-
-        return {
-            success: true,
-            deposited: amount,
-            newBalance: player.bank_balance + amount,
-            wallet: player.points - amount,
-            message: `✅ Deposited ${amount.toLocaleString()} points!\\n🏦 Bank: ${(player.bank_balance + amount).toLocaleString()} points`
-        };
-    }
-
-    async withdraw(player, amount) {
-        amount = parseInt(amount);
         
-        if (isNaN(amount) || amount <= 0) {
-            return { error: 'Invalid amount!' };
-        }
-
-        if (player.bank_balance < amount) {
-            return { error: `Insufficient bank balance! You have ${player.bank_balance.toLocaleString()} points.` };
-        }
-
-        // Execute withdrawal
-        await this.db.updatePlayer(player.phone, {
-            points: player.points + amount,
-            bank_balance: player.bank_balance - amount
+        await sock.sendMessage(jid, { 
+            text: `✅ Deposited ${Helpers.formatNumber(depositAmount)} points!\n\nNew Balance: ${Helpers.formatNumber(player.bank_points + depositAmount)}` 
         });
-
-        return {
-            success: true,
-            withdrawn: amount,
-            newBalance: player.bank_balance - amount,
-            wallet: player.points + amount,
-            message: `✅ Withdrew ${amount.toLocaleString()} points!\\n💰 Wallet: ${(player.points + amount).toLocaleString()} points`
-        };
-    }
-
-    async upgradeTier(player) {
-        const currentTier = this.game.getBankTierInfo(player.bank_tier);
         
-        if (!currentTier.upgrade_cost) {
-            return { error: 'You already have the highest tier (Diamond)!' };
-        }
-
-        if (player.points < currentTier.upgrade_cost) {
-            return {
-                error: `Need ${currentTier.upgrade_cost.toLocaleString()} points to upgrade! You have ${player.points.toLocaleString()}.`
-            };
-        }
-
-        const tiers = ['basic', 'silver', 'gold', 'diamond'];
-        const nextTier = tiers[tiers.indexOf(player.bank_tier) + 1];
-        const nextTierInfo = this.game.getBankTierInfo(nextTier);
-
-        // Execute upgrade
-        await this.db.updatePlayer(player.phone, {
-            points: player.points - currentTier.upgrade_cost,
-            bank_tier: nextTier
-        });
-
-        return {
-            success: true,
-            newTier: nextTierInfo,
-            cost: currentTier.upgrade_cost,
-            message: `🏦 Upgraded to *${nextTierInfo.name}* tier!\\n📊 Interest rate: ${(nextTierInfo.interest * 100).toFixed(0)}%\\n💎 Max balance: ${nextTierInfo.max_balance.toLocaleString()}`
-        };
+        GameEngine.logAction('bank_deposit', phone, { amount: depositAmount });
     }
-
-    async processDailyInterest() {
-        try {
-            const players = await this.db.getAllPlayers();
-            let totalInterestPaid = 0;
-            let playersPaid = 0;
-
-            for (const player of players) {
-                if (player.bank_balance > 0) {
-                    const interest = this.game.calculateInterest(player.bank_balance, player.bank_tier);
-                    
-                    if (interest > 0) {
-                        await this.db.updatePlayer(player.phone, {
-                            bank_balance: player.bank_balance + interest
-                        });
-                        
-                        totalInterestPaid += interest;
-                        playersPaid++;
-
-                        // Log it
-                        await this.db.logAction(player.phone, 'bank_interest', `Received ${interest} points`);
-                    }
-                }
-            }
-
-            console.log(chalk.green(`🏦 Daily interest processed: ${totalInterestPaid.toLocaleString()} points paid to ${playersPaid} players`));
+    
+    static async withdraw(sock, phone, jid, amount) {
+        if (!amount) {
+            return sock.sendMessage(jid, { text: `Usage: /bank withdraw [amount] or /bank withdraw all` });
+        }
+        
+        const player = GameEngine.getPlayer(phone);
+        
+        let withdrawAmount;
+        if (amount.toLowerCase() === 'all') {
+            withdrawAmount = player.bank_points;
+        } else {
+            withdrawAmount = parseInt(amount.replace(/,/g, ''));
+        }
+        
+        if (!withdrawAmount || withdrawAmount <= 0) {
+            return sock.sendMessage(jid, { text: '❌ Invalid amount' });
+        }
+        
+        if (player.bank_points < withdrawAmount) {
+            return sock.sendMessage(jid, { 
+                text: `❌ Insufficient bank balance!\nBank: ${Helpers.formatNumber(player.bank_points)}\nWithdraw: ${Helpers.formatNumber(withdrawAmount)}` 
+            });
+        }
+        
+        // Perform withdrawal
+        GameEngine.updatePlayer(phone, {
+            points: player.points + withdrawAmount,
+            bank_points: player.bank_points - withdrawAmount
+        });
+        
+        await sock.sendMessage(jid, { 
+            text: `✅ Withdrew ${Helpers.formatNumber(withdrawAmount)} points!\n\nWallet: ${Helpers.formatNumber(player.points + withdrawAmount)}` 
+        });
+        
+        GameEngine.logAction('bank_withdraw', phone, { amount: withdrawAmount });
+    }
+    
+    static async upgrade(sock, phone, jid) {
+        const player = GameEngine.getPlayer(phone);
+        const config = global.gameConfig;
+        const currentTier = Helpers.getBankTier(player.bank_tier);
+        const nextTier = config.bankTiers[player.bank_tier];
+        
+        if (!nextTier) {
+            return sock.sendMessage(jid, { text: '✅ Your bank is already at maximum tier (5)!' });
+        }
+        
+        if (player.points < currentTier.upgradeCost) {
+            return sock.sendMessage(jid, { 
+                text: `❌ Insufficient funds!\nCost: ${Helpers.formatNumber(currentTier.upgradeCost)}\nWallet: ${Helpers.formatNumber(player.points)}` 
+            });
+        }
+        
+        // Perform upgrade
+        GameEngine.updatePlayer(phone, {
+            points: player.points - currentTier.upgradeCost,
+            bank_tier: player.bank_tier + 1
+        });
+        
+        await sock.sendMessage(jid, { 
+            text: `🏦 *Bank Upgraded!*\n\n` +
+                `Tier: ${currentTier.tier} → ${nextTier.tier}\n` +
+                `Storage: ${Helpers.formatNumber(currentTier.maxStorage)} → ${Helpers.formatNumber(nextTier.maxStorage)}\n` +
+                `Interest: ${(currentTier.interestRate * 100).toFixed(0)}% → ${(nextTier.interestRate * 100).toFixed(0)}%\n\n` +
+                `Your points are now earning more!`
+        });
+        
+        GameEngine.logAction('bank_upgrade', phone, { 
+            from_tier: currentTier.tier, 
+            to_tier: nextTier.tier,
+            cost: currentTier.upgradeCost
+        });
+    }
+    
+    static async showInterest(sock, phone, jid) {
+        const config = global.gameConfig;
+        
+        let text = `📈 *Bank Interest Rates*\n\n`;
+        
+        for (const tier of config.bankTiers) {
+            const example = 10000;
+            const daily = Math.floor(example * tier.interestRate);
+            text += `Tier ${tier.tier}: ${(tier.interestRate * 100).toFixed(0)}%\n`;
+            text += `   ${Helpers.formatNumber(example)} pts = ${Helpers.formatNumber(daily)} pts/day\n`;
+            text += `   Max: ${Helpers.formatNumber(tier.maxStorage)}\n\n`;
+        }
+        
+        text += `Interest is calculated daily at midnight UTC.`;
+        
+        await sock.sendMessage(jid, { text });
+    }
+    
+    static async history(sock, phone, jid) {
+        const db = Database.get();
+        const logs = db.prepare(`
+            SELECT * FROM logs 
+            WHERE phone = ? AND action LIKE 'bank_%'
+            ORDER BY created_at DESC
+            LIMIT 10
+        `).all(phone);
+        
+        if (logs.length === 0) {
+            return sock.sendMessage(jid, { text: '📭 No bank transactions yet.' });
+        }
+        
+        let text = `📜 *Bank History*\n\n`;
+        
+        for (const log of logs) {
+            const details = JSON.parse(log.details || '{}');
+            const date = new Date(log.created_at).toLocaleDateString();
             
-            return {
-                totalInterest: totalInterestPaid,
-                playersPaid: playersPaid
-            };
-        } catch (error) {
-            console.error(chalk.red('Error processing daily interest:'), error);
-            return { error: error.message };
+            switch(log.action) {
+                case 'bank_deposit':
+                    text += `📥 Deposit +${Helpers.formatNumber(details.amount)} (${date})\n`;
+                    break;
+                case 'bank_withdraw':
+                    text += `📤 Withdraw -${Helpers.formatNumber(details.amount)} (${date})\n`;
+                    break;
+                case 'bank_upgrade':
+                    text += `⬆️ Upgrade to Tier ${details.to_tier} (${date})\n`;
+                    break;
+                case 'bank_interest':
+                    text += `📈 Interest +${Helpers.formatNumber(details.amount)} (${date})\n`;
+                    break;
+            }
         }
-    }
-
-    formatBankInfo(info, player) {
-        let text = `🏦 *Bank Account*\\n\\n`;
-        text += `Tier: ${info.tier.emoji} ${info.tier.name}\\n`;
-        text += `💰 Wallet: ${info.wallet.toLocaleString()} points\\n`;
-        text += `🏦 Balance: ${info.balance.toLocaleString()} points\\n`;
-        text += `📊 Interest Rate: ${(info.interestRate * 100).toFixed(0)}% daily\\n`;
-        text += `💵 Daily Interest: ~${info.dailyInterest.toLocaleString()} points\\n`;
-        text += `💎 Max Balance: ${info.maxBalance.toLocaleString()} points\\n\\n`;
-
-        if (info.tier.upgrade_cost) {
-            const nextTier = this.getNextTier(info.tier);
-            text += `⬆️ Upgrade to ${nextTier.name}: ${info.tier.upgrade_cost.toLocaleString()} points\\n\\n`;
-        }
-
-        text += `*Commands:*\\n`;
-        text += `/bank deposit [amount]\\n`;
-        text += `/bank withdraw [amount]\\n`;
-        text += `/bank upgrade`;
-
-        return text;
-    }
-
-    getNextTier(currentTier) {
-        const tiers = [
-            { name: 'Silver', interest: 0.03 },
-            { name: 'Gold', interest: 0.05 },
-            { name: 'Diamond', interest: 0.08 }
-        ];
         
-        if (currentTier.name === 'Basic') return tiers[0];
-        if (currentTier.name === 'Silver') return tiers[1];
-        if (currentTier.name === 'Gold') return tiers[2];
-        return null;
+        await sock.sendMessage(jid, { text });
+    }
+    
+    static async transfer(sock, phone, jid, args) {
+        const targetPhone = args[0]?.replace(/[^0-9]/g, '');
+        const amount = parseInt(args[1]);
+        
+        if (!targetPhone || !amount) {
+            return sock.sendMessage(jid, { text: `Usage: /bank transfer [phone] [amount]` });
+        }
+        
+        const player = GameEngine.getPlayer(phone);
+        if (player.bank_points < amount) {
+            return sock.sendMessage(jid, { text: '❌ Insufficient bank balance' });
+        }
+        
+        const target = GameEngine.getPlayer(targetPhone);
+        if (!target) {
+            return sock.sendMessage(jid, { text: '❌ Player not found' });
+        }
+        
+        // Transfer
+        GameEngine.updatePlayer(phone, { bank_points: player.bank_points - amount });
+        GameEngine.updatePlayer(targetPhone, { bank_points: target.bank_points + amount });
+        
+        await sock.sendMessage(jid, { 
+            text: `✅ Transferred ${Helpers.formatNumber(amount)} points to ${target.name}'s bank account` 
+        });
+        
+        await sock.sendMessage(Helpers.getJid(targetPhone), {
+            text: `🏦 *Bank Transfer Received*\n\nFrom: ${player.name}\nAmount: ${Helpers.formatNumber(amount)} points\n\nYour new balance: ${Helpers.formatNumber(target.bank_points + amount)}`
+        });
+        
+        GameEngine.logAction('bank_transfer', phone, { to: targetPhone, amount });
+    }
+    
+    static async applyDailyInterest() {
+        const db = Database.get();
+        const config = global.gameConfig;
+        
+        if (!config.features.bankInterest) return;
+        
+        const players = db.prepare(`
+            SELECT phone, bank_points, bank_tier 
+            FROM players 
+            WHERE bank_points > 0
+        `).all();
+        
+        let totalInterest = 0;
+        let playerCount = 0;
+        
+        for (const player of players) {
+            const tier = Helpers.getBankTier(player.bank_tier);
+            const interest = Math.floor(player.bank_points * tier.interestRate);
+            
+            if (interest > 0) {
+                db.prepare('UPDATE players SET bank_points = bank_points + ? WHERE phone = ?')
+                    .run(interest, player.phone);
+                
+                totalInterest += interest;
+                playerCount++;
+                
+                GameEngine.logAction('bank_interest', player.phone, { 
+                    amount: interest, 
+                    rate: tier.interestRate,
+                    tier: player.bank_tier
+                });
+            }
+        }
+        
+        console.log(`[Bank] Applied ${Helpers.formatNumber(totalInterest)} interest to ${playerCount} accounts`);
     }
 }
 
 module.exports = BankSystem;
-"""
-
-with open('/mnt/kimi/output/odd-rpg-baileys/src/systems/bankSystem.js', 'w') as f:
-    f.write(bank_system)
-
-print("✅ 13. src/systems/bankSystem.js created")
