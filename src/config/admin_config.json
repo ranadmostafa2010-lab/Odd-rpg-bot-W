@@ -1,0 +1,37 @@
+
+admin_config = """{
+  "admin_phone": "77785701369",
+  "bot_name": "ODD RPG Bot",
+  "version": "V2.0 Multiplayer Ultimate",
+  "super_admins": ["77785701369"],
+  "moderators": [],
+  "settings": {
+    "maintenance_mode": false,
+    "log_commands": true,
+    "auto_backup": true,
+    "broadcast_cooldown": 60,
+    "max_broadcast_length": 1000
+  },
+  "permissions": {
+    "give_points": ["admin", "moderator"],
+    "ban_players": ["admin", "moderator"],
+    "broadcast": ["admin"],
+    "maintenance": ["admin"],
+    "reset_player": ["admin"],
+    "spawn_boss": ["admin", "moderator"],
+    "create_codes": ["admin"],
+    "view_logs": ["admin"],
+    "edit_config": ["admin"]
+  },
+  "limits": {
+    "max_points_give": 1000000,
+    "max_points_remove": 1000000,
+    "max_daily_codes": 10,
+    "max_broadcast_per_hour": 5
+  }
+}"""
+
+with open('/mnt/kimi/output/odd-rpg-baileys/src/config/admin_config.json', 'w') as f:
+    f.write(admin_config)
+
+print("✅ 4. src/config/admin_config.json updated with admin phone: +7 778 570 1369")
