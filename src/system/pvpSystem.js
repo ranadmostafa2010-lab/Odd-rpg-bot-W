@@ -1,344 +1,286 @@
+const GameEngine = require('../core/gameEngine');
+const Database = require('../core/database');
+const Helpers = require('../utils/helpers');
 
-pvp_system = """const moment = require('moment');
-
-class PvPSystem {
-    constructor(db, gameEngine) {
-        this.db = db;
-        this.game = gameEngine;
-        this.matchmakingQueue = [];
-        this.activeMatches = new Map();
-    }
-
-    async findRankedMatch(player) {
+class PvpSystem {
+    static async findMatch(sock, phone, jid) {
+        const config = global.gameConfig;
+        const db = Database.get();
+        const player = GameEngine.getPlayer(phone);
+        
         // Check cooldown
         if (player.last_pvp) {
-            const minutesSince = moment().diff(moment(player.last_pvp), 'minutes');
-            const cooldown = parseInt(process.env.PVP_COOLDOWN_MINUTES) || 10;
-            if (minutesSince < cooldown) {
-                return {
-                    error: `PvP cooldown active! Wait ${cooldown - minutesSince} more minutes.`
-                };
-            }
-        }
-
-        // Check if already in match
-        if (this.activeMatches.has(player.phone)) {
-            return { error: 'You are already in a PvP match!' };
-        }
-
-        // Look for opponent in queue
-        const opponentIndex = this.matchmakingQueue.findIndex(
-            p => p.phone !== player.phone && Math.abs(p.elo_rating - player.elo_rating) < 200
-        );
-
-        if (opponentIndex === -1) {
-            // Add to queue
-            this.matchmakingQueue.push({
-                phone: player.phone,
-                elo_rating: player.elo_rating,
-                joinedAt: moment()
-            });
-            
-            // Set timeout to remove from queue after 5 minutes
-            setTimeout(() => {
-                this.removeFromQueue(player.phone);
-            }, 5 * 60 * 1000);
-
-            return {
-                queued: true,
-                message: `🔍 Searching for opponent...\\nELO: ${player.elo_rating}\\nQueue position: ${this.matchmakingQueue.length}`
-            };
-        }
-
-        // Match found
-        const opponentData = this.matchmakingQueue.splice(opponentIndex, 1)[0];
-        const opponent = await this.db.getPlayer(opponentData.phone);
-        
-        return this.startMatch(player, opponent);
-    }
-
-    async startMatch(player1, player2) {
-        const matchId = `pvp_${Date.now()}`;
-        
-        const match = {
-            id: matchId,
-            player1: {
-                phone: player1.phone,
-                name: player1.name,
-                hp: player1.hp,
-                maxHp: player1.max_hp,
-                power: player1.power,
-                elo: player1.elo_rating,
-                rank: player1.rank_tier
-            },
-            player2: {
-                phone: player2.phone,
-                name: player2.name,
-                hp: player2.hp,
-                maxHp: player2.max_hp,
-                power: player2.power,
-                elo: player2.elo_rating,
-                rank: player2.rank_tier
-            },
-            turn: 1,
-            currentPlayer: player1.phone,
-            actions: {},
-            status: 'active',
-            startedAt: moment()
-        };
-
-        this.activeMatches.set(player1.phone, match);
-        this.activeMatches.set(player2.phone, match);
-
-        return {
-            match: match,
-            opponent: player2,
-            message: this.formatMatchStart(match, player1)
-        };
-    }
-
-    formatMatchStart(match, player) {
-        const isPlayer1 = match.player1.phone === player.phone;
-        const me = isPlayer1 ? match.player1 : match.player2;
-        const opponent = isPlayer1 ? match.player2 : match.player1;
-        
-        let text = `⚔️ *RANKED PvP MATCH* ⚔️\\n\\n`;
-        text += `🆚 ${opponent.name}\\n`;
-        text += `🏆 Rank: ${opponent.rank.toUpperCase()} (${opponent.elo} ELO)\\n\\n`;
-        text += `📊 *Your Stats*\\n`;
-        text += `❤️ HP: ${me.hp}/${me.maxHp}\\n`;
-        text += `⚔️ Power: ${me.power}\\n`;
-        text += `🏆 Rank: ${me.rank.toUpperCase()} (${me.elo} ELO)\\n\\n`;
-        text += `🎮 *Turn 1* - Your turn!\\n`;
-        text += `Choose: /attack, /defend, /heal, /special`;
-        return text;
-    }
-
-    async submitAction(phone, action) {
-        const match = this.activeMatches.get(phone);
-        if (!match) {
-            return { error: 'No active PvP match!' };
-        }
-
-        if (match.currentPlayer !== phone) {
-            return { error: 'Not your turn! Wait for opponent.' };
-        }
-
-        if (!['attack', 'defend', 'heal', 'special'].includes(action.toLowerCase())) {
-            return { error: 'Invalid action! Use: attack, defend, heal, special' };
-        }
-
-        // Store action
-        match.actions[phone] = action.toLowerCase();
-
-        // Get opponent
-        const isPlayer1 = match.player1.phone === phone;
-        const opponent = isPlayer1 ? match.player2 : match.player1;
-
-        // Check if opponent already acted
-        if (match.actions[opponent.phone]) {
-            return this.resolveTurn(match);
-        }
-
-        // Switch turn
-        match.currentPlayer = opponent.phone;
-
-        return {
-            waiting: true,
-            message: `✅ Action recorded! Waiting for ${opponent.name}...`
-        };
-    }
-
-    async resolveTurn(match) {
-        const p1 = match.player1;
-        const p2 = match.player2;
-        const p1Action = match.actions[p1.phone];
-        const p2Action = match.actions[p2.phone];
-
-        let result = {
-            messages: [],
-            p1Damage: 0,
-            p2Damage: 0,
-            p1Heal: 0,
-            p2Heal: 0,
-            winner: null
-        };
-
-        // Process actions simultaneously
-        // Player 1 action
-        if (p1Action === 'attack') {
-            const isDefending = p2Action === 'defend';
-            result.p2Damage = this.calculateDamage(p1, p2, isDefending);
-            p2.hp -= result.p2Damage;
-            result.messages.push(`${p1.name} ⚔️ attacks for *${result.p2Damage}* damage!`);
-        } else if (p1Action === 'special') {
-            const isDefending = p2Action === 'defend';
-            result.p2Damage = this.calculateDamage(p1, p2, isDefending, true);
-            p2.hp -= result.p2Damage;
-            result.messages.push(`${p1.name} 💥 *SPECIAL* for *${result.p2Damage}* damage!`);
-        } else if (p1Action === 'heal') {
-            result.p1Heal = Math.floor(p1.maxHp * 0.25);
-            p1.hp = Math.min(p1.maxHp, p1.hp + result.p1Heal);
-            result.messages.push(`${p1.name} 💚 heals *${result.p1Heal}* HP!`);
-        } else if (p1Action === 'defend') {
-            result.messages.push(`${p1.name} 🛡️ defends!`);
-        }
-
-        // Player 2 action (if not defeated)
-        if (p2.hp > 0) {
-            if (p2Action === 'attack') {
-                const isDefending = p1Action === 'defend';
-                result.p1Damage = this.calculateDamage(p2, p1, isDefending);
-                p1.hp -= result.p1Damage;
-                result.messages.push(`${p2.name} ⚔️ attacks for *${result.p1Damage}* damage!`);
-            } else if (p2Action === 'special') {
-                const isDefending = p1Action === 'defend';
-                result.p1Damage = this.calculateDamage(p2, p1, isDefending, true);
-                p1.hp -= result.p1Damage;
-                result.messages.push(`${p2.name} 💥 *SPECIAL* for *${result.p1Damage}* damage!`);
-            } else if (p2Action === 'heal') {
-                result.p2Heal = Math.floor(p2.maxHp * 0.25);
-                p2.hp = Math.min(p2.maxHp, p2.hp + result.p2Heal);
-                result.messages.push(`${p2.name} 💚 heals *${result.p2Heal}* HP!`);
-            } else if (p2Action === 'defend') {
-                result.messages.push(`${p2.name} 🛡️ defends!`);
-            }
-        }
-
-        // Check for winner
-        if (p1.hp <= 0 || p2.hp <= 0) {
-            if (p1.hp <= 0 && p2.hp <= 0) {
-                result.winner = 'draw';
-                result.messages.push(`\\n🤝 *DOUBLE KO!* It's a draw!`);
-                await this.endMatch(match, null);
-            } else if (p2.hp <= 0) {
-                result.winner = p1.phone;
-                result.messages.push(`\\n🏆 *${p1.name} WINS!*`);
-                await this.endMatch(match, p1, p2);
-            } else {
-                result.winner = p2.phone;
-                result.messages.push(`\\n🏆 *${p2.name} WINS!*`);
-                await this.endMatch(match, p2, p1);
-            }
-        } else {
-            // Next turn
-            match.turn++;
-            match.actions = {};
-            match.currentPlayer = match.turn % 2 === 1 ? p1.phone : p2.phone;
-            
-            result.messages.push(`\\n📊 *Turn ${match.turn}*`);
-            result.messages.push(`${p1.name}: ${this.formatHealthBar(p1.hp, p1.maxHp)}`);
-            result.messages.push(`${p2.name}: ${this.formatHealthBar(p2.hp, p2.maxHp)}`);
-        }
-
-        return result;
-    }
-
-    calculateDamage(attacker, defender, isDefending, isSpecial = false) {
-        let damage = Math.floor((attacker.power || 10) * (0.8 + Math.random() * 0.4));
-        if (isSpecial) damage = Math.floor(damage * 1.5);
-        if (isDefending) damage = Math.floor(damage * 0.3);
-        return Math.max(1, damage);
-    }
-
-    formatHealthBar(current, max) {
-        const percentage = Math.floor((current / max) * 10);
-        const filled = '█'.repeat(percentage);
-        const empty = '░'.repeat(10 - percentage);
-        return `[${filled}${empty}] ${current}/${max}`;
-    }
-
-    async endMatch(match, winner, loser) {
-        if (winner) {
-            // Calculate ELO changes
-            const eloChanges = this.game.calculateEloChange(winner.elo, loser.elo);
-            
-            // Update winner
-            const winnerData = await this.db.getPlayer(winner.phone);
-            const newWinnerElo = winnerData.elo_rating + eloChanges.winnerChange;
-            const winnerRank = this.game.getRankTier(newWinnerElo);
-            
-            await this.db.updatePlayer(winner.phone, {
-                pvp_wins: winnerData.pvp_wins + 1,
-                elo_rating: newWinnerElo,
-                rank_tier: winnerRank.tier,
-                last_pvp: moment().toISOString()
-            });
-
-            // Update loser
-            const loserData = await this.db.getPlayer(loser.phone);
-            const newLoserElo = Math.max(0, loserData.elo_rating + eloChanges.loserChange);
-            const loserRank = this.game.getRankTier(newLoserElo);
-            
-            await this.db.updatePlayer(loser.phone, {
-                pvp_losses: loserData.pvp_losses + 1,
-                elo_rating: newLoserElo,
-                rank_tier: loserRank.tier,
-                last_pvp: moment().toISOString()
-            });
-
-            // Record match
-            await this.db.recordPvPMatch(
-                winner.phone,
-                loser.phone,
-                winner.phone,
-                winner.hp,
-                loser.hp,
-                eloChanges.winnerChange
-            );
-
-            match.eloChange = {
-                winner: eloChanges.winnerChange,
-                loser: eloChanges.loserChange
-            };
-        } else {
-            // Draw - both players
-            for (const player of [match.player1, match.player2]) {
-                const data = await this.db.getPlayer(player.phone);
-                await this.db.updatePlayer(player.phone, {
-                    last_pvp: moment().toISOString()
+            const minutesSince = (Date.now() - new Date(player.last_pvp)) / (1000 * 60);
+            if (minutesSince < config.cooldowns.pvp) {
+                const minsLeft = Math.ceil(config.cooldowns.pvp - minutesSince);
+                return sock.sendMessage(jid, { 
+                    text: `⏰ PvP cooldown: ${minsLeft} minutes remaining\nUse /rank to see your stats.` 
                 });
             }
         }
-
-        // Cleanup
-        this.activeMatches.delete(match.player1.phone);
-        this.activeMatches.delete(match.player2.phone);
-    }
-
-    removeFromQueue(phone) {
-        const index = this.matchmakingQueue.findIndex(p => p.phone === phone);
-        if (index > -1) {
-            this.matchmakingQueue.splice(index, 1);
+        
+        // Look for pending match in ELO range (±200)
+        const eloRange = 200;
+        const pending = db.prepare(`
+            SELECT m.*, p.elo as challenger_elo 
+            FROM pvp_matches m
+            JOIN players p ON m.challenger_phone = p.phone
+            WHERE m.status = 'pending' 
+            AND m.challenger_phone != ?
+            AND p.elo BETWEEN ? AND ?
+            LIMIT 1
+        `).get(phone, player.elo - eloRange, player.elo + eloRange);
+        
+        if (pending) {
+            // Join existing match
+            db.prepare(`
+                UPDATE pvp_matches 
+                SET opponent_phone = ?, status = 'active', started_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `).run(phone, pending.id);
+            
+            const challenger = GameEngine.getPlayer(pending.challenger_phone);
+            
+            // Notify both players
+            await sock.sendMessage(jid, { 
+                text: `⚔️ *Match Found!*\n\nOpponent: ${challenger.name}\nRank: ${challenger.rank} (${challenger.elo} ELO)\nLevel: ${challenger.level}\n\nBattle starting in 3 seconds...` 
+            });
+            
+            await sock.sendMessage(Helpers.getJid(pending.challenger_phone), {
+                text: `⚔️ *Opponent Found!*\n\n${player.name} has joined!\nRank: ${player.rank} (${player.elo} ELO)\nLevel: ${player.level}\n\nBattle starting in 3 seconds...`
+            });
+            
+            // Initialize battle after delay
+            setTimeout(() => this.initializeBattle(sock, pending.id), 3000);
+        } else {
+            // Create new pending match
+            const result = db.prepare(`
+                INSERT INTO pvp_matches (challenger_phone, challenger_hp, status)
+                VALUES (?, ?, 'pending')
+            `).run(phone, player.max_hp);
+            
+            await sock.sendMessage(jid, { 
+                text: `🔍 *Searching for opponent...*\n\nYour ELO: ${player.elo} (${player.rank})\nRange: ±${eloRange}\n\nMatch ID: ${result.lastInsertRowid}\n\nWaiting for match... Use /ranked again to cancel.` 
+            });
         }
     }
-
-    getMatch(phone) {
-        return this.activeMatches.get(phone);
+    
+    static async initializeBattle(sock, matchId) {
+        const db = Database.get();
+        const match = db.prepare('SELECT * FROM pvp_matches WHERE id = ?').get(matchId);
+        
+        const p1 = GameEngine.getPlayer(match.challenger_phone);
+        const p2 = GameEngine.getPlayer(match.opponent_phone);
+        
+        // Set initial HP
+        db.prepare('UPDATE pvp_matches SET challenger_hp = ?, opponent_hp = ? WHERE id = ?')
+            .run(p1.max_hp, p2.max_hp, matchId);
+        
+        const text = `⚔️ *PvP BATTLE STARTED!*\n\n` +
+            `${p1.name} (${p1.rank}) vs ${p2.name} (${p2.rank})\n` +
+            `ELO: ${p1.elo} vs ${p2.elo}\n\n` +
+            `❤️ ${p1.name}: ${p1.max_hp} HP\n` +
+            `❤️ ${p2.name}: ${p2.max_hp} HP\n\n` +
+            `Both players must use /attack to begin!`;
+            
+        await sock.sendMessage(Helpers.getJid(p1.phone), { text });
+        await sock.sendMessage(Helpers.getJid(p2.phone), { text });
     }
-
-    async getPvPStats(phone) {
-        const player = await this.db.getPlayer(phone);
-        const rankInfo = this.game.getRankTier(player.elo_rating);
+    
+    static async processRound(sock, matchId) {
+        const db = Database.get();
+        const match = db.prepare('SELECT * FROM pvp_matches WHERE id = ?').get(matchId);
         
-        const totalMatches = player.pvp_wins + player.pvp_losses;
-        const winRate = totalMatches > 0 ? Math.round((player.pvp_wins / totalMatches) * 100) : 0;
+        if (!match || match.status !== 'active') return;
         
-        return {
-            rank: rankInfo,
-            elo: player.elo_rating,
-            wins: player.pvp_wins,
-            losses: player.pvp_losses,
-            winRate: winRate,
-            totalMatches: totalMatches
-        };
+        const p1 = GameEngine.getPlayer(match.challenger_phone);
+        const p2 = GameEngine.getPlayer(match.opponent_phone);
+        
+        // Simple auto-battle for now (can be enhanced with player choices)
+        const p1Pet = GameEngine.getEquippedPet(p1.phone);
+        const p2Pet = GameEngine.getEquippedPet(p2.phone);
+        
+        // P1 attacks P2
+        const p1Atk = p1.attack + (p1Pet?.attack_bonus || 0);
+        const p2Def = p2.defense + (p2Pet?.defense_bonus || 0);
+        const p1Crit = Helpers.isCrit();
+        const dmg1 = Helpers.calculateDamage({ attack: p1Atk }, { defense: p2Def }, p1Crit);
+        
+        // P2 attacks P1
+        const p2Atk = p2.attack + (p2Pet?.attack_bonus || 0);
+        const p1Def = p1.defense + (p1Pet?.defense_bonus || 0);
+        const p2Crit = Helpers.isCrit();
+        const dmg2 = Helpers.calculateDamage({ attack: p2Atk }, { defense: p1Def }, p2Crit);
+        
+        const newP2Hp = Math.max(0, match.opponent_hp - dmg1);
+        const newP1Hp = Math.max(0, match.challenger_hp - dmg2);
+        
+        db.prepare(`
+            UPDATE pvp_matches 
+            SET challenger_hp = ?, opponent_hp = ?, turns = turns + 1 
+            WHERE id = ?
+        `).run(newP1Hp, newP2Hp, matchId);
+        
+        // Check for winner
+        if (newP1Hp <= 0 || newP2Hp <= 0) {
+            await this.endBattle(sock, matchId, newP1Hp > 0 ? p1.phone : p2.phone);
+            return;
+        }
+        
+        // Continue battle
+        const text = `⚔️ *Round ${match.turns + 1}*\n\n` +
+            `${p1.name} ${p1Crit ? '💥 CRIT ' : ''}deals ${dmg1} damage!\n` +
+            `${p2.name} ${p2Crit ? '💥 CRIT ' : ''}deals ${dmg2} damage!\n\n` +
+            `❤️ ${p1.name}: ${Helpers.hpBar(newP1Hp, p1.max_hp)} ${newP1Hp}/${p1.max_hp}\n` +
+            `❤️ ${p2.name}: ${Helpers.hpBar(newP2Hp, p2.max_hp)} ${newP2Hp}/${p2.max_hp}`;
+            
+        await sock.sendMessage(Helpers.getJid(p1.phone), { text });
+        await sock.sendMessage(Helpers.getJid(p2.phone), { text });
+        
+        // Schedule next round
+        setTimeout(() => this.processRound(sock, matchId), 5000);
+    }
+    
+    static async endBattle(sock, matchId, winnerPhone) {
+        const db = Database.get();
+        const match = db.prepare('SELECT * FROM pvp_matches WHERE id = ?').get(matchId);
+        
+        const p1 = GameEngine.getPlayer(match.challenger_phone);
+        const p2 = GameEngine.getPlayer(match.opponent_phone);
+        const loserPhone = winnerPhone === p1.phone ? p2.phone : p1.phone;
+        const winner = winnerPhone === p1.phone ? p1 : p2;
+        const loser = winnerPhone === p1.phone ? p2 : p1;
+        
+        // Calculate ELO changes
+        const config = global.gameConfig;
+        const eloDiff = loser.elo - winner.elo;
+        const expectedScore = 1 / (1 + Math.pow(10, eloDiff / 400));
+        const kFactor = 32;
+        
+        let eloChange = Math.round(kFactor * (1 - expectedScore));
+        
+        // Streak bonus
+        if (winner.pvp_streak >= 3) {
+            eloChange += config.pvp.streakBonus;
+        }
+        
+        // Update players
+        GameEngine.updatePlayer(winnerPhone, {
+            elo: winner.elo + eloChange,
+            wins: winner.wins + 1,
+            pvp_streak: winner.pvp_streak + 1,
+            last_pvp: new Date().toISOString()
+        });
+        
+        GameEngine.updatePlayer(loserPhone, {
+            elo: Math.max(0, loser.elo - eloChange),
+            losses: loser.losses + 1,
+            pvp_streak: 0,
+            last_pvp: new Date().toISOString()
+        });
+        
+        // Update match
+        db.prepare(`
+            UPDATE pvp_matches 
+            SET status = 'completed', winner_phone = ?, ended_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `).run(winnerPhone, matchId);
+        
+        // Rewards
+        const rewardPoints = 100 + (eloChange * 10);
+        GameEngine.addPoints(winnerPhone, rewardPoints);
+        
+        // Notify
+        const winText = `🎉 *VICTORY!*\n\n` +
+            `You defeated ${loser.name}!\n` +
+            `ELO: +${eloChange} (${winner.elo} → ${winner.elo + eloChange})\n` +
+            `💰 +${Helpers.formatNumber(rewardPoints)} points\n` +
+            `Streak: ${winner.pvp_streak + 1}`;
+            
+        const loseText = `💔 *DEFEAT*\n\n` +
+            `You lost to ${winner.name}\n` +
+            `ELO: -${eloChange} (${loser.elo} → ${loser.elo - eloChange})\n` +
+            `Don't give up! Try again with /ranked`;
+            
+        await sock.sendMessage(Helpers.getJid(winnerPhone), { text: winText });
+        await sock.sendMessage(Helpers.getJid(loserPhone), { text: loseText });
+    }
+    
+    static async showRank(sock, phone, jid) {
+        const player = GameEngine.getPlayer(phone);
+        const config = global.gameConfig;
+        const rank = Helpers.getRank(player.elo);
+        const nextRank = Helpers.getNextRank(player.elo);
+        
+        const db = Database.get();
+        const position = db.prepare(`
+            SELECT COUNT(*) as pos FROM players 
+            WHERE elo > ? AND banned = 0
+        `).get(player.elo).pos + 1;
+        
+        const totalPlayers = db.prepare('SELECT COUNT(*) as count FROM players WHERE banned = 0').get().count;
+        
+        let text = `🏆 *Your PvP Stats*\n\n`;
+        text += `Rank: ${rank.icon} ${rank.name}\n`;
+        text += `ELO: ${player.elo}`;
+        if (nextRank) {
+            const needed = nextRank.min - player.elo;
+            text += ` (${needed} to ${nextRank.name})`;
+        }
+        text += `\n`;
+        text += `Global Position: #${position} of ${totalPlayers}\n`;
+        text += `Record: ${player.wins}W - ${player.losses}L`;
+        if (player.wins + player.losses > 0) {
+            text += ` (${Math.round((player.wins / (player.wins + player.losses)) * 100)}% WR)`;
+        }
+        text += `\n`;
+        if (player.pvp_streak > 0) {
+            text += `🔥 Win Streak: ${player.pvp_streak}\n`;
+        }
+        text += `\nUse /ranked to find a match!`;
+        
+        await sock.sendMessage(jid, { text });
+    }
+    
+    static async acceptMatch(sock, phone, jid, matchId) {
+        // Implementation for manual match acceptance if needed
+        await sock.sendMessage(jid, { text: 'Match accepted! Waiting for opponent...' });
+    }
+    
+    static async declineMatch(sock, phone, jid, matchId) {
+        const db = Database.get();
+        db.prepare("UPDATE pvp_matches SET status = 'declined' WHERE id = ?").run(matchId);
+        await sock.sendMessage(jid, { text: 'Match declined.' });
+    }
+    
+    static async showHistory(sock, phone, jid) {
+        const db = Database.get();
+        const matches = db.prepare(`
+            SELECT * FROM pvp_matches 
+            WHERE (challenger_phone = ? OR opponent_phone = ?) 
+            AND status = 'completed'
+            ORDER BY ended_at DESC
+            LIMIT 5
+        `).all(phone, phone);
+        
+        if (matches.length === 0) {
+            return sock.sendMessage(jid, { text: 'No PvP history yet. Use /ranked to fight!' });
+        }
+        
+        let text = `⚔️ *Recent PvP Matches*\n\n`;
+        
+        for (const match of matches) {
+            const isChallenger = match.challenger_phone === phone;
+            const opponent = isChallenger ? match.opponent_phone : match.challenger_phone;
+            const opponentData = GameEngine.getPlayer(opponent);
+            const won = match.winner_phone === phone;
+            
+            text += `${won ? '✅' : '❌'} vs ${opponentData?.name || opponent}\n`;
+            text += `   ${won ? 'Won' : 'Lost'} - ELO: ${isChallenger ? match.challenger_hp : match.opponent_hp} HP left\n`;
+        }
+        
+        await sock.sendMessage(jid, { text });
     }
 }
 
-module.exports = PvPSystem;
-"""
-
-with open('/mnt/kimi/output/odd-rpg-baileys/src/systems/pvpSystem.js', 'w') as f:
-    f.write(pvp_system)
-
-print("✅ 9. src/systems/pvpSystem.js created")
+module.exports = PvpSystem;
