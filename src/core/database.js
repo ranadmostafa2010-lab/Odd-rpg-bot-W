@@ -1,650 +1,458 @@
-
-database_js = """const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs-extra');
-const chalk = require('chalk');
+require('dotenv').config();
 
-class Database {
-    constructor() {
-        this.dbPath = process.env.DB_PATH || './database/rpg_bot.db';
-        this.db = null;
-    }
+let db = null;
 
-    async initialize() {
-        await fs.ensureDir(path.dirname(this.dbPath));
+class DatabaseManager {
+    static init() {
+        const dbPath = process.env.DB_PATH || './database/rpg_bot.db';
+        fs.ensureDirSync(path.dirname(dbPath));
         
-        return new Promise((resolve, reject) => {
-            this.db = new sqlite3.Database(this.dbPath, (err) => {
-                if (err) {
-                    console.error(chalk.red('Database connection failed:'), err);
-                    reject(err);
-                } else {
-                    console.log(chalk.green('✅ Connected to SQLite database'));
-                    this.createTables().then(resolve).catch(reject);
-                }
-            });
-        });
+        db = new Database(dbPath);
+        db.pragma('journal_mode = WAL');
+        db.pragma('synchronous = NORMAL');
+        db.pragma('temp_store = MEMORY');
+        db.pragma('mmap_size = 30000000000');
+        
+        this.createTables();
+        this.createIndexes();
+        console.log('[✓] Database initialized:', dbPath);
+        return db;
     }
 
-    async createTables() {
-        const tables = [
-            // Players table - enhanced with PvP stats
-            `CREATE TABLE IF NOT EXISTS players (
+    static createTables() {
+        // Players
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS players (
                 phone TEXT PRIMARY KEY,
                 name TEXT DEFAULT 'Player',
-                points INTEGER DEFAULT 0,
-                power INTEGER DEFAULT 10,
-                hp INTEGER DEFAULT 100,
-                max_hp INTEGER DEFAULT 100,
+                username TEXT UNIQUE,
                 level INTEGER DEFAULT 1,
                 exp INTEGER DEFAULT 0,
-                wins INTEGER DEFAULT 0,
-                losses INTEGER DEFAULT 0,
-                pvp_wins INTEGER DEFAULT 0,
-                pvp_losses INTEGER DEFAULT 0,
-                elo_rating INTEGER DEFAULT 1000,
-                rank_tier TEXT DEFAULT 'bronze',
-                bank_tier TEXT DEFAULT 'basic',
-                bank_balance INTEGER DEFAULT 0,
+                hp INTEGER DEFAULT 100,
+                max_hp INTEGER DEFAULT 100,
+                attack INTEGER DEFAULT 10,
+                defense INTEGER DEFAULT 5,
+                speed INTEGER DEFAULT 5,
+                points INTEGER DEFAULT 0,
+                total_earned INTEGER DEFAULT 0,
+                total_spent INTEGER DEFAULT 0,
+                bank_points INTEGER DEFAULT 0,
+                bank_tier INTEGER DEFAULT 1,
                 last_daily TEXT,
+                daily_streak INTEGER DEFAULT 0,
                 last_steal TEXT,
+                steals_today INTEGER DEFAULT 0,
                 last_pvp TEXT,
+                pvp_streak INTEGER DEFAULT 0,
                 shield_active INTEGER DEFAULT 0,
                 shield_expires TEXT,
-                xp_boost_expires TEXT,
-                luck_boost_expires TEXT,
-                status TEXT DEFAULT 'offline',
-                last_seen TEXT DEFAULT CURRENT_TIMESTAMP,
+                rank TEXT DEFAULT 'Bronze',
+                elo INTEGER DEFAULT 1000,
+                wins INTEGER DEFAULT 0,
+                losses INTEGER DEFAULT 0,
+                draws INTEGER DEFAULT 0,
+                equipped_pet INTEGER DEFAULT NULL,
+                active_effects TEXT DEFAULT '{}',
                 banned INTEGER DEFAULT 0,
                 ban_reason TEXT,
+                ban_expires TEXT,
+                warned INTEGER DEFAULT 0,
+                language TEXT DEFAULT 'en',
+                notifications INTEGER DEFAULT 1,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )`,
+                last_active TEXT DEFAULT CURRENT_TIMESTAMP,
+                play_time_minutes INTEGER DEFAULT 0
+            )
+        `);
 
-            // Pets table
-            `CREATE TABLE IF NOT EXISTS pets (
+        // Pets
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS pets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                owner_phone TEXT,
+                owner_phone TEXT NOT NULL,
                 name TEXT,
-                rarity TEXT,
-                atk INTEGER DEFAULT 0,
-                special_name TEXT,
+                rarity TEXT DEFAULT 'Common',
+                type TEXT,
+                level INTEGER DEFAULT 1,
+                exp INTEGER DEFAULT 0,
+                hp_bonus INTEGER DEFAULT 0,
+                attack_bonus INTEGER DEFAULT 0,
+                defense_bonus INTEGER DEFAULT 0,
+                speed_bonus INTEGER DEFAULT 0,
+                special_attack TEXT,
                 equipped INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                favorite INTEGER DEFAULT 0,
+                obtained_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (owner_phone) REFERENCES players(phone) ON DELETE CASCADE
-            )`,
+            )
+        `);
 
-            // Inventory table
-            `CREATE TABLE IF NOT EXISTS inventory (
+        // Inventory
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS inventory (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                phone TEXT,
+                phone TEXT NOT NULL,
+                item_id TEXT,
                 item_type TEXT,
                 item_name TEXT,
                 quantity INTEGER DEFAULT 1,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                equipped INTEGER DEFAULT 0,
+                durability INTEGER,
+                max_durability INTEGER,
+                stats TEXT,
+                obtained_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (phone) REFERENCES players(phone) ON DELETE CASCADE
-            )`,
+            )
+        `);
 
-            // Messages/Inbox table
-            `CREATE TABLE IF NOT EXISTS messages (
+        // Active Battles (PvE)
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS active_battles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                from_phone TEXT,
-                to_phone TEXT,
-                message TEXT,
-                read INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (from_phone) REFERENCES players(phone),
-                FOREIGN KEY (to_phone) REFERENCES players(phone)
-            )`,
-
-            // Trades table
-            `CREATE TABLE IF NOT EXISTS trades (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                from_phone TEXT,
-                to_phone TEXT,
-                offer_pet_id INTEGER,
-                offer_points INTEGER DEFAULT 0,
-                request_pet_id INTEGER,
-                request_points INTEGER DEFAULT 0,
-                status TEXT DEFAULT 'pending',
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (from_phone) REFERENCES players(phone),
-                FOREIGN KEY (to_phone) REFERENCES players(phone)
-            )`,
-
-            // PvP Matches table
-            `CREATE TABLE IF NOT EXISTS pvp_matches (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                player1_phone TEXT,
-                player2_phone TEXT,
-                winner_phone TEXT,
-                player1_damage INTEGER DEFAULT 0,
-                player2_damage INTEGER DEFAULT 0,
-                elo_change INTEGER DEFAULT 0,
-                match_type TEXT DEFAULT 'ranked',
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (player1_phone) REFERENCES players(phone),
-                FOREIGN KEY (player2_phone) REFERENCES players(phone)
-            )`,
-
-            // Group Battles table
-            `CREATE TABLE IF NOT EXISTS group_battles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                creator_phone TEXT,
-                group_jid TEXT,
-                status TEXT DEFAULT 'waiting',
-                max_players INTEGER DEFAULT 5,
-                current_players INTEGER DEFAULT 1,
+                phone TEXT NOT NULL,
+                enemy_id TEXT,
                 enemy_name TEXT,
+                enemy_level INTEGER,
                 enemy_hp INTEGER,
                 enemy_max_hp INTEGER,
+                enemy_attack INTEGER,
+                enemy_defense INTEGER,
+                enemy_speed INTEGER,
+                player_hp INTEGER,
+                player_max_hp INTEGER,
+                turn INTEGER DEFAULT 1,
+                status TEXT DEFAULT 'active',
+                battle_type TEXT DEFAULT 'normal',
                 rewards TEXT,
+                started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                last_action TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (phone) REFERENCES players(phone) ON DELETE CASCADE
+            )
+        `);
+
+        // PvP Matches
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS pvp_matches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                challenger_phone TEXT NOT NULL,
+                opponent_phone TEXT,
+                status TEXT DEFAULT 'pending',
+                winner_phone TEXT,
+                challenger_hp INTEGER,
+                opponent_hp INTEGER,
+                challenger_deck TEXT,
+                opponent_deck TEXT,
+                turns INTEGER DEFAULT 0,
                 started_at TEXT,
                 ended_at TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (creator_phone) REFERENCES players(phone)
-            )`,
+                challenger_ready INTEGER DEFAULT 0,
+                opponent_ready INTEGER DEFAULT 0,
+                FOREIGN KEY (challenger_phone) REFERENCES players(phone),
+                FOREIGN KEY (opponent_phone) REFERENCES players(phone)
+            )
+        `);
 
-            // Group Battle Participants table
-            `CREATE TABLE IF NOT EXISTS group_battle_participants (
+        // Group Battles
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS group_battles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                battle_id INTEGER,
-                phone TEXT,
-                damage_dealt INTEGER DEFAULT 0,
-                healing_done INTEGER DEFAULT 0,
-                joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (battle_id) REFERENCES group_battles(id) ON DELETE CASCADE,
-                FOREIGN KEY (phone) REFERENCES players(phone)
-            )`,
-
-            // World Bosses table
-            `CREATE TABLE IF NOT EXISTS world_bosses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id TEXT NOT NULL,
+                boss_id TEXT,
                 boss_name TEXT,
                 boss_hp INTEGER,
                 boss_max_hp INTEGER,
-                active INTEGER DEFAULT 1,
+                boss_attack INTEGER,
+                boss_defense INTEGER,
+                status TEXT DEFAULT 'waiting',
+                min_players INTEGER DEFAULT 2,
+                max_players INTEGER DEFAULT 5,
+                current_players INTEGER DEFAULT 0,
+                rewards TEXT,
+                started_at TEXT,
+                ended_at TEXT,
+                created_by TEXT,
+                FOREIGN KEY (created_by) REFERENCES players(phone)
+            )
+        `);
+
+        // Group Battle Participants
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS group_battle_participants (
+                battle_id INTEGER,
+                phone TEXT,
+                hp INTEGER,
+                max_hp INTEGER,
+                damage_dealt INTEGER DEFAULT 0,
+                healing_done INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'active',
+                joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (battle_id) REFERENCES group_battles(id) ON DELETE CASCADE,
+                FOREIGN KEY (phone) REFERENCES players(phone)
+            )
+        `);
+
+        // World Bosses
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS world_bosses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                boss_id TEXT UNIQUE,
+                name TEXT,
+                hp INTEGER,
+                max_hp INTEGER,
+                attack INTEGER,
+                defense INTEGER,
+                speed INTEGER,
+                status TEXT DEFAULT 'active',
                 spawned_by TEXT,
+                spawn_message TEXT,
+                defeat_message TEXT,
+                rewards TEXT,
+                total_damage INTEGER DEFAULT 0,
+                killers_count INTEGER DEFAULT 0,
                 spawned_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 defeated_at TEXT,
-                FOREIGN KEY (spawned_by) REFERENCES players(phone)
-            )`,
+                expires_at TEXT
+            )
+        `);
 
-            // World Boss Participants table
-            `CREATE TABLE IF NOT EXISTS world_boss_participants (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+        // World Boss Damage
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS world_boss_damage (
                 boss_id INTEGER,
                 phone TEXT,
-                damage_dealt INTEGER DEFAULT 0,
-                joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                damage INTEGER DEFAULT 0,
+                hits INTEGER DEFAULT 0,
+                last_hit TEXT,
                 FOREIGN KEY (boss_id) REFERENCES world_bosses(id) ON DELETE CASCADE,
                 FOREIGN KEY (phone) REFERENCES players(phone)
-            )`,
+            )
+        `);
 
-            // Active Battles table (for message editing)
-            `CREATE TABLE IF NOT EXISTS active_battles (
+        // Trades
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS trades (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                phone TEXT UNIQUE,
-                battle_type TEXT,
-                enemy_data TEXT,
-                player_hp INTEGER,
-                enemy_hp INTEGER,
-                turn INTEGER DEFAULT 1,
-                message_id TEXT,
-                chat_jid TEXT,
-                started_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                last_action TEXT,
+                trade_id TEXT UNIQUE,
+                sender_phone TEXT NOT NULL,
+                receiver_phone TEXT NOT NULL,
+                sender_pets TEXT,
+                sender_items TEXT,
+                sender_points INTEGER DEFAULT 0,
+                receiver_pets TEXT,
+                receiver_items TEXT,
+                receiver_points INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                sender_confirmed INTEGER DEFAULT 0,
+                receiver_confirmed INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT,
+                completed_at TEXT,
+                FOREIGN KEY (sender_phone) REFERENCES players(phone),
+                FOREIGN KEY (receiver_phone) REFERENCES players(phone)
+            )
+        `);
+
+        // Messages (Inbox)
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT NOT NULL,
+                sender TEXT,
+                sender_name TEXT,
+                title TEXT,
+                content TEXT,
+                type TEXT DEFAULT 'system',
+                category TEXT DEFAULT 'general',
+                attachments TEXT,
+                read INTEGER DEFAULT 0,
+                archived INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                read_at TEXT,
                 FOREIGN KEY (phone) REFERENCES players(phone) ON DELETE CASCADE
-            )`,
+            )
+        `);
 
-            // Promo codes usage table
-            `CREATE TABLE IF NOT EXISTS promo_usage (
+        // Achievements
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS achievements (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                phone TEXT,
-                code TEXT,
-                used_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (phone) REFERENCES players(phone)
-            )`,
+                phone TEXT NOT NULL,
+                achievement_id TEXT,
+                name TEXT,
+                description TEXT,
+                category TEXT,
+                unlocked_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                progress INTEGER DEFAULT 0,
+                max_progress INTEGER,
+                reward_claimed INTEGER DEFAULT 0,
+                FOREIGN KEY (phone) REFERENCES players(phone) ON DELETE CASCADE
+            )
+        `);
 
-            // Steal logs table
-            `CREATE TABLE IF NOT EXISTS steal_logs (
+        // Quests
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS quests (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                thief_phone TEXT,
-                victim_phone TEXT,
-                amount INTEGER,
-                success INTEGER,
+                phone TEXT NOT NULL,
+                quest_id TEXT,
+                name TEXT,
+                description TEXT,
+                type TEXT,
+                requirements TEXT,
+                rewards TEXT,
+                status TEXT DEFAULT 'active',
+                progress INTEGER DEFAULT 0,
+                target INTEGER,
+                started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                completed_at TEXT,
+                expires_at TEXT,
+                FOREIGN KEY (phone) REFERENCES players(phone) ON DELETE CASCADE
+            )
+        `);
+
+        // Guilds/Clans
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS guilds (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT UNIQUE,
+                name TEXT,
+                tag TEXT,
+                description TEXT,
+                leader_phone TEXT,
+                co_leaders TEXT,
+                members TEXT,
+                max_members INTEGER DEFAULT 20,
+                level INTEGER DEFAULT 1,
+                exp INTEGER DEFAULT 0,
+                treasury INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (thief_phone) REFERENCES players(phone),
-                FOREIGN KEY (victim_phone) REFERENCES players(phone)
-            )`,
+                FOREIGN KEY (leader_phone) REFERENCES players(phone)
+            )
+        `);
 
-            // Game logs table
-            `CREATE TABLE IF NOT EXISTS logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+        // Guild Members
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS guild_members (
+                guild_id INTEGER,
                 phone TEXT,
+                rank TEXT DEFAULT 'member',
+                joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                contribution INTEGER DEFAULT 0,
+                FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+                FOREIGN KEY (phone) REFERENCES players(phone)
+            )
+        `);
+
+        // Market/Listings
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS market (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                seller_phone TEXT,
+                item_type TEXT,
+                item_id INTEGER,
+                item_name TEXT,
+                quantity INTEGER,
+                price INTEGER,
+                listed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT,
+                sold INTEGER DEFAULT 0,
+                buyer_phone TEXT,
+                sold_at TEXT,
+                FOREIGN KEY (seller_phone) REFERENCES players(phone)
+            )
+        `);
+
+        // Logs
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 action TEXT,
+                category TEXT,
+                phone TEXT,
+                target_phone TEXT,
                 details TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (phone) REFERENCES players(phone)
-            )`,
+                ip_address TEXT,
+                user_agent TEXT,
+                success INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
 
-            // Ranked Season table
-            `CREATE TABLE IF NOT EXISTS ranked_seasons (
+        // Sessions for web dashboard (if implemented)
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                season_number INTEGER,
-                start_date TEXT,
-                end_date TEXT,
-                status TEXT DEFAULT 'active'
-            )`
-        ];
+                phone TEXT,
+                session_token TEXT UNIQUE,
+                expires_at TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (phone) REFERENCES players(phone) ON DELETE CASCADE
+            )
+        `);
 
-        for (const sql of tables) {
-            await this.run(sql);
-        }
-
-        console.log(chalk.green('✅ Database tables created'));
+        // Settings per player
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS settings (
+                phone TEXT PRIMARY KEY,
+                notifications INTEGER DEFAULT 1,
+                compact_mode INTEGER DEFAULT 0,
+                auto_battle INTEGER DEFAULT 0,
+                language TEXT DEFAULT 'en',
+                theme TEXT DEFAULT 'default',
+                privacy_level INTEGER DEFAULT 1,
+                FOREIGN KEY (phone) REFERENCES players(phone) ON DELETE CASCADE
+            )
+        `);
     }
 
-    // Promise wrappers
-    run(sql, params = []) {
-        return new Promise((resolve, reject) => {
-            this.db.run(sql, params, function(err) {
-                if (err) reject(err);
-                else resolve({ id: this.lastID, changes: this.changes });
-            });
-        });
+    static createIndexes() {
+        // Performance indexes
+        db.exec('CREATE INDEX IF NOT EXISTS idx_pets_owner ON pets(owner_phone)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_pets_equipped ON pets(owner_phone, equipped)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_inventory_phone ON inventory(phone)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_battles_phone ON active_battles(phone, status)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_battles_status ON active_battles(status)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_pvp_challenger ON pvp_matches(challenger_phone, status)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_pvp_opponent ON pvp_matches(opponent_phone, status)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_group_battle_group ON group_battles(group_id, status)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_world_boss_status ON world_bosses(status)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_world_boss_damage_boss ON world_boss_damage(boss_id)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_world_boss_damage_phone ON world_boss_damage(phone)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_trades_sender ON trades(sender_phone, status)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_trades_receiver ON trades(receiver_phone, status)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_messages_phone ON messages(phone, read)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_achievements_phone ON achievements(phone)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_quests_phone ON quests(phone, status)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_guild_members_phone ON guild_members(phone)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_market_seller ON market(seller_phone, sold)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_logs_phone ON logs(phone, created_at)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_logs_action ON logs(action, created_at)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_players_elo ON players(elo DESC)');
+        db.exec('CREATE INDEX IF NOT EXISTS idx_players_level ON players(level DESC, exp DESC)');
     }
 
-    get(sql, params = []) {
-        return new Promise((resolve, reject) => {
-            this.db.get(sql, params, (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
+    static get() {
+        if (!db) this.init();
+        return db;
     }
 
-    all(sql, params = []) {
-        return new Promise((resolve, reject) => {
-            this.db.all(sql, params, (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
-    }
-
-    // Player methods
-    async getPlayer(phone) {
-        return await this.get('SELECT * FROM players WHERE phone = ?', [phone]);
-    }
-
-    async createPlayer(phone, name = 'Player') {
-        await this.run(
-            'INSERT INTO players (phone, name) VALUES (?, ?)',
-            [phone, name]
-        );
-        return await this.getPlayer(phone);
-    }
-
-    async updatePlayer(phone, updates) {
-        const keys = Object.keys(updates);
-        const values = Object.values(updates);
-        const setClause = keys.map(k => `${k} = ?`).join(', ');
-        
-        await this.run(
-            `UPDATE players SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE phone = ?`,
-            [...values, phone]
-        );
-        return await this.getPlayer(phone);
-    }
-
-    async updateStatus(phone, status) {
-        await this.run(
-            'UPDATE players SET status = ?, last_seen = CURRENT_TIMESTAMP WHERE phone = ?',
-            [status, phone]
-        );
-    }
-
-    async getOnlinePlayers() {
-        return await this.all(
-            "SELECT * FROM players WHERE status = 'online' AND banned = 0"
-        );
-    }
-
-    async getAllPlayers() {
-        return await this.all('SELECT * FROM players WHERE banned = 0');
-    }
-
-    async getLeaderboard(limit = 10) {
-        return await this.all(
-            'SELECT phone, name, points, wins, pvp_wins, level, elo_rating, rank_tier FROM players WHERE banned = 0 ORDER BY points DESC LIMIT ?',
-            [limit]
-        );
-    }
-
-    async getPvPLeaderboard(limit = 10) {
-        return await this.all(
-            'SELECT phone, name, pvp_wins, pvp_losses, elo_rating, rank_tier FROM players WHERE banned = 0 ORDER BY elo_rating DESC LIMIT ?',
-            [limit]
-        );
-    }
-
-    // Pet methods
-    async getPets(phone) {
-        return await this.all('SELECT * FROM pets WHERE owner_phone = ?', [phone]);
-    }
-
-    async getEquippedPet(phone) {
-        return await this.get('SELECT * FROM pets WHERE owner_phone = ? AND equipped = 1', [phone]);
-    }
-
-    async addPet(phone, petData) {
-        const result = await this.run(
-            'INSERT INTO pets (owner_phone, name, rarity, atk, special_name) VALUES (?, ?, ?, ?, ?)',
-            [phone, petData.name, petData.rarity, petData.atk, petData.special_name || null]
-        );
-        return await this.get('SELECT * FROM pets WHERE id = ?', [result.id]);
-    }
-
-    async equipPet(phone, petId) {
-        await this.run('UPDATE pets SET equipped = 0 WHERE owner_phone = ?', [phone]);
-        await this.run('UPDATE pets SET equipped = 1 WHERE id = ? AND owner_phone = ?', [petId, phone]);
-        return await this.get('SELECT * FROM pets WHERE id = ?', [petId]);
-    }
-
-    async deletePet(petId) {
-        await this.run('DELETE FROM pets WHERE id = ?', [petId]);
-    }
-
-    // Inventory methods
-    async getInventory(phone) {
-        return await this.all('SELECT * FROM inventory WHERE phone = ?', [phone]);
-    }
-
-    async addItem(phone, itemType, itemName, quantity = 1) {
-        const existing = await this.get(
-            'SELECT * FROM inventory WHERE phone = ? AND item_type = ? AND item_name = ?',
-            [phone, itemType, itemName]
-        );
-        
-        if (existing) {
-            await this.run(
-                'UPDATE inventory SET quantity = quantity + ? WHERE id = ?',
-                [quantity, existing.id]
-            );
-        } else {
-            await this.run(
-                'INSERT INTO inventory (phone, item_type, item_name, quantity) VALUES (?, ?, ?, ?)',
-                [phone, itemType, itemName, quantity]
-            );
+    static close() {
+        if (db) {
+            db.close();
+            db = null;
+            console.log('[✓] Database connection closed');
         }
     }
 
-    async removeItem(phone, itemType, itemName, quantity = 1) {
-        const existing = await this.get(
-            'SELECT * FROM inventory WHERE phone = ? AND item_type = ? AND item_name = ?',
-            [phone, itemType, itemName]
-        );
-        
-        if (existing) {
-            if (existing.quantity <= quantity) {
-                await this.run('DELETE FROM inventory WHERE id = ?', [existing.id]);
-            } else {
-                await this.run(
-                    'UPDATE inventory SET quantity = quantity - ? WHERE id = ?',
-                    [quantity, existing.id]
-                );
-            }
-        }
-    }
-
-    // Message methods
-    async sendMessage(fromPhone, toPhone, message) {
-        await this.run(
-            'INSERT INTO messages (from_phone, to_phone, message) VALUES (?, ?, ?)',
-            [fromPhone, toPhone, message]
-        );
-    }
-
-    async getInbox(phone) {
-        return await this.all(
-            'SELECT m.*, p.name as from_name FROM messages m JOIN players p ON m.from_phone = p.phone WHERE m.to_phone = ? ORDER BY m.created_at DESC LIMIT 50',
-            [phone]
-        );
-    }
-
-    async markAsRead(messageId) {
-        await this.run('UPDATE messages SET read = 1 WHERE id = ?', [messageId]);
-    }
-
-    // Trade methods
-    async createTrade(tradeData) {
-        const result = await this.run(
-            'INSERT INTO trades (from_phone, to_phone, offer_pet_id, offer_points, request_pet_id, request_points) VALUES (?, ?, ?, ?, ?, ?)',
-            [tradeData.from_phone, tradeData.to_phone, tradeData.offer_pet_id, tradeData.offer_points, tradeData.request_pet_id, tradeData.request_points]
-        );
-        return await this.get('SELECT * FROM trades WHERE id = ?', [result.id]);
-    }
-
-    async getPendingTrades(phone) {
-        return await this.all(
-            'SELECT * FROM trades WHERE to_phone = ? AND status = "pending"',
-            [phone]
-        );
-    }
-
-    async updateTradeStatus(tradeId, status) {
-        await this.run('UPDATE trades SET status = ? WHERE id = ?', [status, tradeId]);
-    }
-
-    // PvP methods
-    async recordPvPMatch(player1, player2, winner, damage1, damage2, eloChange) {
-        await this.run(
-            'INSERT INTO pvp_matches (player1_phone, player2_phone, winner_phone, player1_damage, player2_damage, elo_change) VALUES (?, ?, ?, ?, ?, ?)',
-            [player1, player2, winner, damage1, damage2, eloChange]
-        );
-    }
-
-    // Active Battle methods (for message editing)
-    async createActiveBattle(phone, battleData) {
-        await this.run(
-            'INSERT OR REPLACE INTO active_battles (phone, battle_type, enemy_data, player_hp, enemy_hp, message_id, chat_jid) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [phone, battleData.type, JSON.stringify(battleData.enemy), battleData.playerHp, battleData.enemyHp, battleData.messageId, battleData.chatJid]
-        );
-    }
-
-    async getActiveBattle(phone) {
-        return await this.get('SELECT * FROM active_battles WHERE phone = ?', [phone]);
-    }
-
-    async updateBattle(phone, updates) {
-        const keys = Object.keys(updates);
-        const values = Object.values(updates);
-        const setClause = keys.map(k => `${k} = ?`).join(', ');
-        
-        await this.run(
-            `UPDATE active_battles SET ${setClause} WHERE phone = ?`,
-            [...values, phone]
-        );
-    }
-
-    async deleteActiveBattle(phone) {
-        await this.run('DELETE FROM active_battles WHERE phone = ?', [phone]);
-    }
-
-    // Group Battle methods
-    async createGroupBattle(creatorPhone, groupJid, battleData) {
-        const result = await this.run(
-            'INSERT INTO group_battles (creator_phone, group_jid, enemy_name, enemy_hp, enemy_max_hp, rewards, max_players) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [creatorPhone, groupJid, battleData.enemyName, battleData.enemyHp, battleData.enemyHp, JSON.stringify(battleData.rewards), battleData.maxPlayers || 5]
-        );
-        
-        // Add creator as first participant
-        await this.run(
-            'INSERT INTO group_battle_participants (battle_id, phone) VALUES (?, ?)',
-            [result.id, creatorPhone]
-        );
-        
-        return result.id;
-    }
-
-    async getActiveGroupBattle(groupJid) {
-        return await this.get(
-            'SELECT * FROM group_battles WHERE group_jid = ? AND status IN ("waiting", "active")',
-            [groupJid]
-        );
-    }
-
-    async joinGroupBattle(battleId, phone) {
-        await this.run(
-            'INSERT INTO group_battle_participants (battle_id, phone) VALUES (?, ?)',
-            [battleId, phone]
-        );
-        await this.run(
-            'UPDATE group_battles SET current_players = current_players + 1 WHERE id = ?',
-            [battleId]
-        );
-    }
-
-    async getGroupBattleParticipants(battleId) {
-        return await this.all(
-            'SELECT gbp.*, p.name, p.power FROM group_battle_participants gbp JOIN players p ON gbp.phone = p.phone WHERE gbp.battle_id = ?',
-            [battleId]
-        );
-    }
-
-    async updateGroupBattleDamage(battleId, phone, damage) {
-        await this.run(
-            'UPDATE group_battle_participants SET damage_dealt = damage_dealt + ? WHERE battle_id = ? AND phone = ?',
-            [damage, battleId, phone]
-        );
-    }
-
-    async updateGroupBattleStatus(battleId, status) {
-        await this.run('UPDATE group_battles SET status = ? WHERE id = ?', [status, battleId]);
-    }
-
-    // World Boss methods
-    async getActiveWorldBoss() {
-        return await this.get('SELECT * FROM world_bosses WHERE active = 1');
-    }
-
-    async spawnWorldBoss(bossData, spawnedBy) {
-        const result = await this.run(
-            'INSERT INTO world_bosses (boss_name, boss_hp, boss_max_hp, spawned_by) VALUES (?, ?, ?, ?)',
-            [bossData.name, bossData.hp, bossData.hp, spawnedBy]
-        );
-        return await this.get('SELECT * FROM world_bosses WHERE id = ?', [result.id]);
-    }
-
-    async updateWorldBossHp(bossId, damage) {
-        await this.run(
-            'UPDATE world_bosses SET boss_hp = boss_hp - ? WHERE id = ?',
-            [damage, bossId]
-        );
-        return await this.get('SELECT * FROM world_bosses WHERE id = ?', [bossId]);
-    }
-
-    async defeatWorldBoss(bossId) {
-        await this.run(
-            'UPDATE world_bosses SET active = 0, defeated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            [bossId]
-        );
-    }
-
-    async addWorldBossParticipant(bossId, phone) {
-        await this.run(
-            'INSERT OR IGNORE INTO world_boss_participants (boss_id, phone) VALUES (?, ?)',
-            [bossId, phone]
-        );
-    }
-
-    async updateWorldBossDamage(bossId, phone, damage) {
-        await this.run(
-            'UPDATE world_boss_participants SET damage_dealt = damage_dealt + ? WHERE boss_id = ? AND phone = ?',
-            [damage, bossId, phone]
-        );
-    }
-
-    async getWorldBossParticipants(bossId) {
-        return await this.all(
-            'SELECT wbp.*, p.name FROM world_boss_participants wbp JOIN players p ON wbp.phone = p.phone WHERE wbp.boss_id = ? ORDER BY wbp.damage_dealt DESC',
-            [bossId]
-        );
-    }
-
-    // Steal methods
-    async logSteal(thiefPhone, victimPhone, amount, success) {
-        await this.run(
-            'INSERT INTO steal_logs (thief_phone, victim_phone, amount, success) VALUES (?, ?, ?, ?)',
-            [thiefPhone, victimPhone, amount, success ? 1 : 0]
-        );
-    }
-
-    // Promo code methods
-    async hasUsedCode(phone, code) {
-        const row = await this.get(
-            'SELECT * FROM promo_usage WHERE phone = ? AND code = ?',
-            [phone, code]
-        );
-        return !!row;
-    }
-
-    async recordCodeUsage(phone, code) {
-        await this.run(
-            'INSERT INTO promo_usage (phone, code) VALUES (?, ?)',
-            [phone, code]
-        );
-    }
-
-    // Logging
-    async logAction(phone, action, details = '') {
-        await this.run(
-            'INSERT INTO logs (phone, action, details) VALUES (?, ?, ?)',
-            [phone, action, details]
-        );
-    }
-
-    // Backup
-    async backup() {
-        const backupPath = `${this.dbPath}.backup.${Date.now()}`;
-        await fs.copy(this.dbPath, backupPath);
-        console.log(chalk.green(`✅ Database backed up to: ${backupPath}`));
-        
-        // Keep only last 5 backups
-        const dir = path.dirname(this.dbPath);
-        const files = await fs.readdir(dir);
-        const backups = files
-            .filter(f => f.startsWith('rpg_bot.db.backup'))
-            .map(f => ({ name: f, time: fs.statSync(path.join(dir, f)).mtime }))
-            .sort((a, b) => b.time - a.time);
-        
-        if (backups.length > 5) {
-            for (const old of backups.slice(5)) {
-                await fs.remove(path.join(dir, old.name));
-            }
-        }
-    }
-
-    async close() {
-        return new Promise((resolve) => {
-            if (this.db) {
-                this.db.close((err) => {
-                    if (err) console.error(chalk.red('Error closing database:'), err);
-                    else console.log(chalk.green('✅ Database connection closed'));
-                    resolve();
-                });
-            } else {
-                resolve();
-            }
-        });
+    static backup() {
+        const backupPath = `./database/backup_${Date.now()}.db`;
+        db.backup(backupPath)
+            .then(() => console.log('[✓] Database backed up to:', backupPath))
+            .catch(err => console.error('[!] Backup failed:', err));
     }
 }
 
-module.exports = Database;
-"""
-
-with open('/mnt/kimi/output/odd-rpg-baileys/src/core/database.js', 'w') as f:
-    f.write(database_js)
-
-print("✅ 5. src/core/database.js created")
+module.exports = DatabaseManager;
