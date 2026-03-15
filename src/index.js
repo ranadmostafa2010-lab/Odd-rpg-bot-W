@@ -13,7 +13,7 @@ const path = require('path');
 require('dotenv').config();
 
 const Database = require('./core/database');
-const MessageHandler = require('./handlers/messageHandler');
+const MessageHandler = require('./handler/messageHandler');
 const GameLoop = require('./core/gameLoop');
 const ConfigLoader = require('./core/configLoader');
 
