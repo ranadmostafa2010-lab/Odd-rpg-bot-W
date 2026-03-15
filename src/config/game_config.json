@@ -1,5 +1,4 @@
-
-game_config = """{
+{
   "enemies": {
     "common": {
       "slime": {
@@ -297,45 +296,40 @@ game_config = """{
       }
     ]
   },
- "tutorial": {
+  "tutorial": {
     "pages": [
       {
         "title": "🎮 Welcome to ODD RPG!",
-        "content": "Your journey begins here! This is a multiplayer RPG bot where you can:\\n\\n⚔️ Battle NPCs and other players\\n🤝 Trade with anyone\\n🥷 Steal from other players\\n👥 Join group battles\\n🏆 Climb the ranked ladder"
+        "content": "Your journey begins here! This is a multiplayer RPG bot where you can:\n\n⚔️ Battle NPCs and other players\n🤝 Trade with anyone\n🥷 Steal from other players\n👥 Join group battles\n🏆 Climb the ranked ladder"
       },
       {
         "title": "⚔️ Battle System",
-        "content": "Battles are turn-based with 4 options:\\n\\n⚔️ ATTACK - Deal damage based on power + pet\\n🛡️ DEFEND - Reduce incoming damage by 70%\\n💚 HEAL - Restore HP (limited uses)\\n🏃 FLEE - 60% chance to escape\\n\\nWin to earn points and EXP!"
+        "content": "Battles are turn-based with 4 options:\n\n⚔️ ATTACK - Deal damage based on power + pet\n🛡️ DEFEND - Reduce incoming damage by 70%\n💚 HEAL - Restore HP (limited uses)\n🏃 FLEE - 60% chance to escape\n\nWin to earn points and EXP!"
       },
       {
         "title": "🐾 Pet System",
-        "content": "Pets boost your combat power:\\n\\n📦 Open crates to get pets\\n⭐ 5 rarities: Common → Mythic\\n⚔️ Each pet adds ATK to your damage\\n🔄 Merge 3 same pets to upgrade rarity\\n👆 Equip your best pet with /equip"
+        "content": "Pets boost your combat power:\n\n📦 Open crates to get pets\n⭐ 5 rarities: Common → Mythic\n⚔️ Each pet adds ATK to your damage\n🔄 Merge 3 same pets to upgrade rarity\n👆 Equip your best pet with /equip"
       },
       {
         "title": "💰 Economy",
-        "content": "Manage your wealth:\\n\\n💵 Points - Main currency\\n🏦 Bank - Safe from steals, earns interest\\n📦 Crates - Buy to get pets\\n🏪 Shop - Potions, shields, boosts\\n🥷 Stealing - Risk/reward from others"
+        "content": "Manage your wealth:\n\n💵 Points - Main currency\n🏦 Bank - Safe from steals, earns interest\n📦 Crates - Buy to get pets\n🏪 Shop - Potions, shields, boosts\n🥷 Stealing - Risk/reward from others"
       },
       {
         "title": "🏆 PvP Ranked",
-        "content": "Compete against other players:\\n\\n⚔️ /ranked to find a match\\n📊 ELO system - Win = +points, Lose = -points\\n🥉 Ranks: Bronze → Grandmaster\\n🎁 Season rewards based on rank\\n⏱️ 60 seconds per turn"
+        "content": "Compete against other players:\n\n⚔️ /ranked to find a match\n📊 ELO system - Win = +points, Lose = -points\n🥉 Ranks: Bronze → Grandmaster\n🎁 Season rewards based on rank\n⏱️ 60 seconds per turn"
       },
       {
         "title": "👥 Group Battles",
-        "content": "Team up with friends:\\n\\n📢 /groupbattle to start\\n👥 2-5 players per group\\n👹 Fight powerful raid bosses\\n💎 Better rewards than solo\\n⏱️ 5 minute timeout"
+        "content": "Team up with friends:\n\n📢 /groupbattle to start\n👥 2-5 players per group\n👹 Fight powerful raid bosses\n💎 Better rewards than solo\n⏱️ 5 minute timeout"
       },
       {
         "title": "🤝 Trading & Stealing",
-        "content": "Interact with others:\\n\\n/trade [player] - Send trade request\\nOffer pets, points, or both\\n/steal [player] - Try to steal points\\n🛡️ Shields block steals\\n⏱️ 30min cooldown on steals"
+        "content": "Interact with others:\n\n/trade [player] - Send trade request\nOffer pets, points, or both\n/steal [player] - Try to steal points\n🛡️ Shields block steals\n⏱️ 30min cooldown on steals"
       },
       {
         "title": "🎁 Codes & Daily",
-        "content": "Free rewards:\\n\\n/code [CODE] - Redeem promo codes\\n/daily - Claim every 24 hours\\n📈 Rewards scale with your level\\n💎 Special events give bonus codes"
+        "content": "Free rewards:\n\n/code [CODE] - Redeem promo codes\n/daily - Claim every 24 hours\n📈 Rewards scale with your level\n💎 Special events give bonus codes"
       }
     ]
   }
-}"""
-
-with open('/mnt/kimi/output/odd-rpg-baileys/src/config/game_config.json', 'w') as f:
-    f.write(game_config)
-
-print("✅ 3. src/config/game_config.json created")
+}
