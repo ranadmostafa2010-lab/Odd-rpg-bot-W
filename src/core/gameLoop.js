@@ -1,7 +1,7 @@
 const cron = require('node-cron');
-const BankSystem = require('../systems/bankSystem');
-const WorldBossSystem = require('../systems/worldBossSystem');
-const QuestSystem = require('../systems/questSystem');
+const BankSystem = require('../system/bankSystem');
+const WorldBossSystem = require('../system/worldBossSystem');
+const QuestSystem = require('../system/questSystem');
 
 class GameLoop {
     static sock = null;
