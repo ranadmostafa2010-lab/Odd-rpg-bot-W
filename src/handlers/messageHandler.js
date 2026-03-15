@@ -3,18 +3,18 @@ const ConfigLoader = require('../core/configLoader');
 const Helpers = require('../utils/helpers');
 
 // All Systems
-const PveSystem = require('../systems/pveSystem');
-const PvpSystem = require('../systems/pvpSystem');
-const BankSystem = require('../systems/bankSystem');
-const ShopSystem = require('../systems/shopSystem');
-const PetSystem = require('../systems/petSystem');
-const TradeSystem = require('../systems/tradeSystem');
-const StealSystem = require('../systems/stealSystem');
-const AdminSystem = require('../systems/adminSystem');
-const GroupBattleSystem = require('../systems/groupBattleSystem');
-const WorldBossSystem = require('../systems/worldBossSystem');
-const GuildSystem = require('../systems/guildSystem');
-const QuestSystem = require('../systems/questSystem');
+const PveSystem = require('../system/pveSystem');
+const PvpSystem = require('../system/pvpSystem');
+const BankSystem = require('../system/bankSystem');
+const ShopSystem = require('../system/shopSystem');
+const PetSystem = require('../system/petSystem');
+const TradeSystem = require('../system/tradeSystem');
+const StealSystem = require('../system/stealSystem');
+const AdminSystem = require('../system/adminSystem');
+const GroupBattleSystem = require('../system/groupBattleSystem');
+const WorldBossSystem = require('../system/worldBossSystem');
+const GuildSystem = require('../system/guildSystem');
+const QuestSystem = require('../system/questSystem');
 
 class MessageHandler {
     static async handle(sock, msg) {
