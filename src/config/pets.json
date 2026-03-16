@@ -1,0 +1,27 @@
+{
+  "_edit_tip": "Add pets here. rarity affects drop rates from crates.",
+  "_rarities": "common(60%), rare(25%), epic(10%), legendary(4%), mythic(1%), celestial(0.1%)",
+
+  "pets": [
+    { "id": "fire_fox", "name": "Fire Fox", "emoji": "🦊🔥", "rarity": "common", "bonus_attack": 2, "bonus_defense": 0, "bonus_hp": 5, "special_name": "Fire Burst", "special_multiplier": 1.8, "desc": "A small fox with warm fur. Starter pet." },
+    { "id": "sapling", "name": "Magic Sapling", "emoji": "🌱", "rarity": "common", "bonus_attack": 1, "bonus_defense": 2, "bonus_hp": 8, "special_name": "Growth", "special_multiplier": 1.5, "desc": "A living plant that follows you." },
+    { "id": "rock_golem", "name": "Mini Golem", "emoji": "🪨", "rarity": "common", "bonus_attack": 0, "bonus_defense": 4, "bonus_hp": 10, "special_name": "Rock Throw", "special_multiplier": 1.6, "desc": "Tiny stone guardian." },
+    
+    { "id": "shadow_cat", "name": "Shadow Cat", "emoji": "🐈‍⬛", "rarity": "rare", "bonus_attack": 5, "bonus_defense": 2, "bonus_hp": 8, "special_name": "Shadow Claw", "special_multiplier": 2.0, "desc": "Silent hunter of the night." },
+    { "id": "frost_bunny", "name": "Frost Bunny", "emoji": "🐰❄️", "rarity": "rare", "bonus_attack": 3, "bonus_defense": 3, "bonus_hp": 12, "special_name": "Ice Hop", "special_multiplier": 1.8, "desc": "Leaves frost wherever it hops." },
+    { "id": "wind_sparrow", "name": "Wind Sparrow", "emoji": "🐦💨", "rarity": "rare", "bonus_attack": 6, "bonus_defense": 0, "bonus_hp": 5, "special_name": "Gust", "special_multiplier": 2.2, "desc": "Fast as the wind itself." },
+    
+    { "id": "magma_lion", "name": "Magma Lion", "emoji": "🦁🔥", "rarity": "epic", "bonus_attack": 8, "bonus_defense": 4, "bonus_hp": 15, "special_name": "Magma Roar", "special_multiplier": 2.5, "desc": "King of the volcanic plains." },
+    { "id": "crystal_wolf", "name": "Crystal Wolf", "emoji": "🐺💎", "rarity": "epic", "bonus_attack": 7, "bonus_defense": 6, "bonus_hp": 12, "special_name": "Crystal Howl", "special_multiplier": 2.3, "desc": "Its howl shatters glass." },
+    { "id": "poison_frog", "name": "Poison Dart Frog", "emoji": "🐸☠️", "rarity": "epic", "bonus_attack": 10, "bonus_defense": 1, "bonus_hp": 8, "special_name": "Toxic Splash", "special_multiplier": 2.8, "desc": "Deadly beauty. Don't touch." },
+    
+    { "id": "thunder_hawk", "name": "Thunder Hawk", "emoji": "🦅⚡", "rarity": "legendary", "bonus_attack": 15, "bonus_defense": 5, "bonus_hp": 20, "special_name": "Thunder Strike", "special_multiplier": 3.0, "desc": "Brings storms wherever it flies." },
+    { "id": "frost_phoenix", "name": "Frost Phoenix", "emoji": "🐦‍🔥❄️", "rarity": "legendary", "bonus_attack": 12, "bonus_defense": 8, "bonus_hp": 25, "special_name": "Blizzard Rebirth", "special_multiplier": 2.8, "desc": "Reborn from ice instead of fire." },
+    { "id": "void_wolf", "name": "Void Wolf", "emoji": "🐺🌌", "rarity": "legendary", "bonus_attack": 18, "bonus_defense": 3, "bonus_hp": 15, "special_name": "Void Bite", "special_multiplier": 3.2, "desc": "Hunts between dimensions." },
+    
+    { "id": "celestial_dragon", "name": "Celestial Dragon", "emoji": "🐉✨", "rarity": "mythic", "bonus_attack": 25, "bonus_defense": 15, "bonus_hp": 50, "special_name": "Star Breath", "special_multiplier": 4.0, "desc": "Born from a dying star." },
+    { "id": "world_turtle", "name": "World Turtle", "emoji": "🐢🌍", "rarity": "mythic", "bonus_attack": 10, "bonus_defense": 30, "bonus_hp": 80, "special_name": "Shell Shock", "special_multiplier": 3.5, "desc": "Carries ancient wisdom and weight." },
+    
+    { "id": "infinity_wyrm", "name": "Infinity Wyrm", "emoji": "🐍∞", "rarity": "celestial", "bonus_attack": 50, "bonus_defense": 25, "bonus_hp": 100, "special_name": "Eternal Coil", "special_multiplier": 5.0, "desc": "Exists outside of time. The ultimate companion." }
+  ]
+}
