@@ -1,0 +1,67 @@
+{
+  "_edit_tip": "Add a new class by copying any block below and changing values. id must be unique.",
+  "_add_class_steps": [
+    "1. Add class block here",
+    "2. Add case in battleManager.js processClassSkill() switch",
+    "3. Done — messageHandler routes /[cmd] automatically"
+  ],
+
+  "classes": {
+    "warrior": {
+      "name": "Warrior",      "emoji": "⚔️",   "cmd": "bash",
+      "desc": "Tank. High HP and defense. Born to endure punishment.",
+      "hp_mult": 1.3,   "atk_mult": 1.1,  "def_mult": 1.2,
+      "passive_name": "Battle Hardened",
+      "passive_desc": "15% chance to completely block any incoming attack.",
+      "skill_name": "Shield Bash",
+      "skill_desc": "Stun the enemy for 1 turn. Cooldown: 5 turns.",
+      "skill_cd": 5,
+      "skill": { "type": "stun", "dmg_mult": 1.0 }
+    },
+    "mage": {
+      "name": "Mage",         "emoji": "🔮",   "cmd": "meteor",
+      "desc": "Glass cannon. Low HP but devastating spell damage.",
+      "hp_mult": 0.8,   "atk_mult": 1.5,  "def_mult": 0.7,
+      "passive_name": "Arcane Surge",
+      "passive_desc": "20% chance each turn: next attack deals double damage.",
+      "skill_name": "Meteor",
+      "skill_desc": "300% damage + forced critical hit. Cooldown: 6 turns.",
+      "skill_cd": 6,
+      "skill": { "type": "damage", "dmg_mult": 3.0, "force_crit": true }
+    },
+    "rogue": {
+      "name": "Rogue",        "emoji": "🗡️",   "cmd": "backstab",
+      "desc": "Fast and sneaky. Best steal rates. First hit always crits.",
+      "hp_mult": 0.9,   "atk_mult": 1.2,  "def_mult": 0.9,
+      "steal_bonus_pct": 20,
+      "passive_name": "Shadow Step",
+      "passive_desc": "First attack every battle is guaranteed critical hit.",
+      "skill_name": "Backstab",
+      "skill_desc": "200% damage + 50% chance to poison (5% HP/turn). Cooldown: 4 turns.",
+      "skill_cd": 4,
+      "skill": { "type": "backstab", "dmg_mult": 2.0, "poison_chance": 50, "poison_pct": 5 }
+    },
+    "healer": {
+      "name": "Healer",       "emoji": "💊",   "cmd": "nova",
+      "desc": "Support class. Regenerates HP each turn automatically.",
+      "hp_mult": 1.1,   "atk_mult": 0.8,  "def_mult": 1.0,
+      "passive_name": "Regeneration",
+      "passive_desc": "Heal 5% max HP at the start of every single turn.",
+      "skill_name": "Holy Nova",
+      "skill_desc": "Deal 100% damage AND heal 50% HP. Cooldown: 5 turns.",
+      "skill_cd": 5,
+      "skill": { "type": "nova", "dmg_mult": 1.0, "heal_pct": 50 }
+    },
+    "berserker": {
+      "name": "Berserker",    "emoji": "🪓",   "cmd": "rampage",
+      "desc": "Lower HP = more damage. The ultimate risk-reward class.",
+      "hp_mult": 1.0,   "atk_mult": 1.0,  "def_mult": 0.8,
+      "passive_name": "Bloodlust",
+      "passive_desc": "+2% attack per 1% HP missing. At 10% HP = +180% ATK.",
+      "skill_name": "Rampage",
+      "skill_desc": "Strike 3 times rapidly, scaled by missing HP. Cooldown: 5 turns.",
+      "skill_cd": 5,
+      "skill": { "type": "multihit", "hits": 3, "dmg_per_hit": 0.8 }
+    }
+  }
+}
