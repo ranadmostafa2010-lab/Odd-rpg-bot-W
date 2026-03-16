@@ -1,0 +1,181 @@
+{
+  "_edit_tip": "Configure crate drop tables here. pet_table chances must sum to 100.",
+  "_add_crate": "Copy block, change id, adjust rewards. Set daily_free for free daily crate.",
+
+  "crates": [
+    {
+      "id": "common_crate",
+      "name": "Common Crate",
+      "emoji": "📦",
+      "desc": "Basic rewards for beginners.",
+      "cost_odds": 500,
+      "cost_gems": 0,
+      "daily_free": false,
+      "animation": "📦 ➡️ ✨",
+      "rewards": {
+        "odds_min": 200,
+        "odds_max": 800,
+        "pet_drop_chance": 15,
+        "pet_table": [
+          { "pet_id": "fire_fox", "chance_percent": 50 },
+          { "pet_id": "sapling", "chance_percent": 35 },
+          { "pet_id": "rock_golem", "chance_percent": 15 }
+        ],
+        "guaranteed_item": null
+      }
+    },
+    {
+      "id": "rare_crate",
+      "name": "Rare Crate",
+      "emoji": "🎁",
+      "desc": "Better odds and rare pet chances.",
+      "cost_odds": 2000,
+      "cost_gems": 0,
+      "daily_free": false,
+      "animation": "🎁 ➡️ 🌟 ➡️ ✨",
+      "rewards": {
+        "odds_min": 1000,
+        "odds_max": 3000,
+        "pet_drop_chance": 35,
+        "pet_table": [
+          { "pet_id": "shadow_cat", "chance_percent": 40 },
+          { "pet_id": "frost_bunny", "chance_percent": 35 },
+          { "pet_id": "wind_sparrow", "chance_percent": 25 }
+        ],
+        "guaranteed_item": "health_potion"
+      }
+    },
+    {
+      "id": "epic_crate",
+      "name": "Epic Crate",
+      "emoji": "🎀",
+      "desc": "Premium rewards with epic pets.",
+      "cost_odds": 0,
+      "cost_gems": 15,
+      "daily_free": false,
+      "animation": "🎀 ➡️ 💫 ➡️ 🌟",
+      "rewards": {
+        "odds_min": 5000,
+        "odds_max": 15000,
+        "pet_drop_chance": 50,
+        "pet_table": [
+          { "pet_id": "magma_lion", "chance_percent": 35 },
+          { "pet_id": "crystal_wolf", "chance_percent": 35 },
+          { "pet_id": "poison_frog", "chance_percent": 30 }
+        ],
+        "guaranteed_item": "full_restore"
+      }
+    },
+    {
+      "id": "legendary_crate",
+      "name": "Legendary Crate",
+      "emoji": "🎆",
+      "desc": "Legendary pets and massive rewards.",
+      "cost_odds": 0,
+      "cost_gems": 50,
+      "daily_free": false,
+      "animation": "🎆 ➡️ 🔥 ➡️ 👑",
+      "rewards": {
+        "odds_min": 25000,
+        "odds_max": 75000,
+        "pet_drop_chance": 65,
+        "pet_table": [
+          { "pet_id": "thunder_hawk", "chance_percent": 40 },
+          { "pet_id": "frost_phoenix", "chance_percent": 35 },
+          { "pet_id": "void_wolf", "chance_percent": 25 }
+        ],
+        "guaranteed_item": "mythril_blade"
+      }
+    },
+    {
+      "id": "daily_crate",
+      "name": "Daily Crate",
+      "emoji": "📅",
+      "desc": "Free once per day! Claim with /daily.",
+      "cost_odds": 0,
+      "cost_gems": 0,
+      "daily_free": true,
+      "animation": "📅 ➡️ 🎁 ➡️ ✨",
+      "rewards": {
+        "odds_min": 500,
+        "odds_max": 1500,
+        "pet_drop_chance": 20,
+        "pet_table": [
+          { "pet_id": "fire_fox", "chance_percent": 60 },
+          { "pet_id": "sapling", "chance_percent": 30 },
+          { "pet_id": "shadow_cat", "chance_percent": 10 }
+        ],
+        "guaranteed_item": "health_potion"
+      }
+    },
+    {
+      "id": "starter_crate",
+      "name": "Welcome Crate",
+      "emoji": "🎊",
+      "desc": "One-time new player bonus.",
+      "cost_odds": 0,
+      "cost_gems": 0,
+      "daily_free": false,
+      "boss_drop_only": false,
+      "event_only": false,
+      "guild_only": false,
+      "prestige_reward": false,
+      "animation": "🎊 ➡️ 🌟 ➡️ 🎉",
+      "rewards": {
+        "odds_min": 1000,
+        "odds_max": 3000,
+        "pet_drop_chance": 100,
+        "pet_table": [
+          { "pet_id": "fire_fox", "chance_percent": 70 },
+          { "pet_id": "sapling", "chance_percent": 20 },
+          { "pet_id": "shadow_cat", "chance_percent": 10 }
+        ],
+        "guaranteed_item": "health_potion"
+      }
+    },
+    {
+      "id": "boss_crate",
+      "name": "Boss Crate",
+      "emoji": "👑",
+      "desc": "Dropped by world bosses. High value.",
+      "cost_odds": 0,
+      "cost_gems": 0,
+      "daily_free": false,
+      "boss_drop_only": true,
+      "animation": "👑 ➡️ 🔥 ➡️ 💎",
+      "rewards": {
+        "odds_min": 10000,
+        "odds_max": 30000,
+        "pet_drop_chance": 45,
+        "pet_table": [
+          { "pet_id": "magma_lion", "chance_percent": 30 },
+          { "pet_id": "crystal_wolf", "chance_percent": 30 },
+          { "pet_id": "thunder_hawk", "chance_percent": 25 },
+          { "pet_id": "frost_phoenix", "chance_percent": 15 }
+        ],
+        "guaranteed_item": "full_restore"
+      }
+    },
+    {
+      "id": "mythic_crate",
+      "name": "Mythic Crate",
+      "emoji": "🔮",
+      "desc": "Event-only. Mythic pet chance!",
+      "cost_odds": 0,
+      "cost_gems": 100,
+      "daily_free": false,
+      "event_only": true,
+      "animation": "🔮 ➡️ 🌌 ➡️ ⭐",
+      "rewards": {
+        "odds_min": 100000,
+        "odds_max": 250000,
+        "pet_drop_chance": 80,
+        "pet_table": [
+          { "pet_id": "celestial_dragon", "chance_percent": 50 },
+          { "pet_id": "world_turtle", "chance_percent": 50 }
+        ],
+        "guaranteed_item": "power_ring"
+      }
+    }
+  ]
+}
