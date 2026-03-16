@@ -1,0 +1,107 @@
+{
+  "_edit_tip": "Add dungeons here. Each dungeon has floors + a boss on the last floor.",
+  "_add_dungeon": "Copy any dungeon block, give it a unique id, add enemies to floor arrays.",
+
+  "dungeons": [
+    {
+      "id": "goblin_lair",
+      "name": "Goblin Lair",       "emoji": "🏚️",
+      "min_level": 5,
+      "desc": "A smelly underground lair crawling with goblins.",
+      "max_party": 3,
+      "floors": [
+        { "floor": 1, "enemies": [{ "id": "slime", "count": 2 }, { "id": "goblin", "count": 1 }] },
+        { "floor": 2, "enemies": [{ "id": "goblin", "count": 3 }] },
+        { "floor": 3, "enemies": [{ "id": "wolf", "count": 2 }, { "id": "goblin", "count": 1 }] },
+        { "floor": 4, "enemies": [{ "id": "goblin", "count": 3 }, { "id": "wolf", "count": 1 }] },
+        {
+          "floor": 5, "is_boss": true,
+          "boss": {
+            "id": "goblin_king", "name": "Goblin King", "emoji": "👺👑",
+            "hp": 1200, "attack": 55, "defense": 30,
+            "desc": "The largest, ugliest goblin. Wears a stolen crown."
+          }
+        }
+      ],
+      "rewards": {
+        "odds_per_player": 3000, "xp_per_player": 1500, "gems_per_player": 3,
+        "pet_drop": { "pet_id": "shadow_cat", "chance_pct": 15 }
+      }
+    },
+    {
+      "id": "fire_temple",
+      "name": "Fire Temple",       "emoji": "🏛️🔥",
+      "min_level": 15,
+      "desc": "Ancient temple where fire elementals worship their god.",
+      "max_party": 3,
+      "floors": [
+        { "floor": 1, "enemies": [{ "id": "fire_mage", "count": 2 }] },
+        { "floor": 2, "enemies": [{ "id": "fire_mage", "count": 2 }, { "id": "orc_warrior", "count": 1 }] },
+        { "floor": 3, "enemies": [{ "id": "fire_mage", "count": 3 }] },
+        { "floor": 4, "enemies": [{ "id": "orc_warrior", "count": 2 }, { "id": "fire_mage", "count": 2 }] },
+        {
+          "floor": 5, "is_boss": true,
+          "boss": {
+            "id": "ignis", "name": "Ignis, God of Fire", "emoji": "🔥👁️",
+            "hp": 2500, "attack": 90, "defense": 50,
+            "desc": "An ancient god of flame. His gaze sets you ablaze."
+          }
+        }
+      ],
+      "rewards": {
+        "odds_per_player": 10000, "xp_per_player": 5000, "gems_per_player": 10,
+        "pet_drop": { "pet_id": "magma_lion", "chance_pct": 20 }
+      }
+    },
+    {
+      "id": "frozen_tomb",
+      "name": "Frozen Tomb",       "emoji": "🏔️❄️",
+      "min_level": 25,
+      "desc": "An ancient burial site frozen solid. The dead still walk here.",
+      "max_party": 3,
+      "floors": [
+        { "floor": 1, "enemies": [{ "id": "ice_golem", "count": 2 }] },
+        { "floor": 2, "enemies": [{ "id": "frost_shade", "count": 2 }, { "id": "ice_golem", "count": 1 }] },
+        { "floor": 3, "enemies": [{ "id": "ice_golem", "count": 2 }, { "id": "frost_shade", "count": 2 }] },
+        { "floor": 4, "enemies": [{ "id": "frost_shade", "count": 3 }, { "id": "ice_golem", "count": 1 }] },
+        {
+          "floor": 5, "is_boss": true,
+          "boss": {
+            "id": "frozen_lich", "name": "The Frozen Lich", "emoji": "💀❄️",
+            "hp": 3500, "attack": 110, "defense": 80,
+            "desc": "A lich who chose eternal cold over death."
+          }
+        }
+      ],
+      "rewards": {
+        "odds_per_player": 20000, "xp_per_player": 10000, "gems_per_player": 20,
+        "pet_drop": { "pet_id": "frost_phoenix", "chance_pct": 18 }
+      }
+    },
+    {
+      "id": "void_rift",
+      "name": "Void Rift",         "emoji": "🌌🕳️",
+      "min_level": 45,
+      "desc": "A tear in reality. Time and space collapse inside.",
+      "max_party": 3,
+      "floors": [
+        { "floor": 1, "enemies": [{ "id": "void_demon", "count": 2 }] },
+        { "floor": 2, "enemies": [{ "id": "reality_shard", "count": 2 }, { "id": "void_demon", "count": 1 }] },
+        { "floor": 3, "enemies": [{ "id": "time_wraith", "count": 2 }, { "id": "void_demon", "count": 1 }] },
+        { "floor": 4, "enemies": [{ "id": "void_demon", "count": 2 }, { "id": "time_wraith", "count": 2 }] },
+        {
+          "floor": 5, "is_boss": true,
+          "boss": {
+            "id": "rift_guardian", "name": "The Rift Guardian", "emoji": "👾🌌",
+            "hp": 6000, "attack": 180, "defense": 130,
+            "desc": "The entity keeping the rift open. Impossibly powerful."
+          }
+        }
+      ],
+      "rewards": {
+        "odds_per_player": 50000, "xp_per_player": 25000, "gems_per_player": 50,
+        "pet_drop": { "pet_id": "void_wolf", "chance_pct": 20 }
+      }
+    }
+  ]
+}
