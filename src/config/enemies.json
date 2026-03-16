@@ -1,0 +1,61 @@
+{
+  "_edit_tip": "Add enemies here. All stats scale with difficulty multipliers in game_config.json.",
+  "_add_enemy": "Copy any block, give unique id, adjust stats for level range.",
+
+  "enemies": [
+    { "id": "slime", "name": "Slime", "emoji": "💧", "min_level": 1, "base_hp": 80, "base_attack": 12, "base_defense": 0, "desc": "A harmless blob of goo. Good for beginners." },
+    { "id": "goblin", "name": "Goblin", "emoji": "👺", "min_level": 3, "base_hp": 120, "base_attack": 18, "base_defense": 5, "desc": "Small, green, and annoying." },
+    { "id": "wolf", "name": "Dire Wolf", "emoji": "🐺", "min_level": 5, "base_hp": 180, "base_attack": 25, "base_defense": 8, "desc": "A hungry predator of the forest." },
+    { "id": "skeleton", "name": "Skeleton", "emoji": "💀", "min_level": 8, "base_hp": 220, "base_attack": 30, "base_defense": 10, "desc": "Animated bones. Weak to blunt force." },
+    { "id": "orc_warrior", "name": "Orc Warrior", "emoji": "👹", "min_level": 12, "base_hp": 350, "base_attack": 45, "base_defense": 20, "desc": "A brutal fighter with crude armor." },
+    { "id": "fire_mage", "name": "Fire Mage", "emoji": "🔥", "min_level": 15, "base_hp": 280, "base_attack": 55, "base_defense": 12, "desc": "Casts fireballs. High damage, low defense." },
+    { "id": "troll", "name": "Cave Troll", "emoji": "🧌", "min_level": 20, "base_hp": 600, "base_attack": 50, "base_defense": 35, "desc": "Regenerates health slowly. High HP." },
+    { "id": "vampire", "name": "Vampire", "emoji": "🧛", "min_level": 25, "base_hp": 450, "base_attack": 60, "base_defense": 25, "desc": "Drains life with each attack." },
+    { "id": "ice_golem", "name": "Ice Golem", "emoji": "🧊", "min_level": 28, "base_hp": 800, "base_attack": 55, "base_defense": 50, "desc": "Frozen construct. Extremely durable." },
+    { "id": "frost_shade", "name": "Frost Shade", "emoji": "👻❄️", "min_level": 30, "base_hp": 380, "base_attack": 70, "base_defense": 15, "desc": "Ethereal spirit of the frozen wastes." },
+    { "id": "dark_knight", "name": "Dark Knight", "emoji": "🛡️⚔️", "min_level": 35, "base_hp": 900, "base_attack": 75, "base_defense": 60, "desc": "Fallen paladin with cursed armor." },
+    { "id": "dragon_whelp", "name": "Dragon Whelp", "emoji": "🐉", "min_level": 40, "base_hp": 1200, "base_attack": 90, "base_defense": 45, "desc": "Young dragon. Breathes fire already." },
+    { "id": "void_demon", "name": "Void Demon", "emoji": "👾", "min_level": 45, "base_hp": 1500, "base_attack": 110, "base_defense": 55, "desc": "Creature from between dimensions." },
+    { "id": "reality_shard", "name": "Reality Shard", "emoji": "🔮", "min_level": 48, "base_hp": 800, "base_attack": 130, "base_defense": 30, "desc": "Fragment of broken reality. Unstable magic." },
+    { "id": "time_wraith", "name": "Time Wraith", "emoji": "⏳", "min_level": 50, "base_hp": 1100, "base_attack": 100, "base_defense": 40, "desc": "Feeds on stolen time. Fast attacks." }
+  ],
+
+  "random_bosses": [
+    {
+      "id": "forest_guardian",
+      "name": "Forest Guardian",
+      "emoji": "🌳🛡️",
+      "min_level": 10,
+      "hp": 1500,
+      "attack": 65,
+      "defense": 40,
+      "desc": "An ancient treant protecting the woods.",
+      "pet_drop": { "pet_id": "sapling", "chance_pct": 25 },
+      "mat_drops": [{ "mat_id": "ancient_bark", "chance_pct": 60, "min_qty": 1, "max_qty": 3 }]
+    },
+    {
+      "id": "shadow_assassin",
+      "name": "Shadow Assassin",
+      "emoji": "🥷",
+      "min_level": 25,
+      "hp": 2800,
+      "attack": 110,
+      "defense": 30,
+      "desc": "Master of stealth. Strikes from darkness.",
+      "pet_drop": { "pet_id": "shadow_cat", "chance_pct": 20 },
+      "mat_drops": [{ "mat_id": "shadow_essence", "chance_pct": 50, "min_qty": 1, "max_qty": 2 }]
+    },
+    {
+      "id": "storm_behemoth",
+      "name": "Storm Behemoth",
+      "emoji": "⛈️",
+      "min_level": 40,
+      "hp": 5000,
+      "attack": 150,
+      "defense": 80,
+      "desc": "Living thunderstorm. Devastating power.",
+      "pet_drop": { "pet_id": "thunder_hawk", "chance_pct": 15 },
+      "mat_drops": [{ "mat_id": "storm_core", "chance_pct": 40, "min_qty": 1, "max_qty": 2 }]
+    }
+  ]
+}
