@@ -1,0 +1,33 @@
+{
+  "_edit_tip": "Add items here. Set cost_odds OR cost_gems (not both usually).",
+  "_item_types": "consumable, gear, material, cosmetic",
+
+  "items": [
+    { "id": "health_potion", "name": "Health Potion", "emoji": "🧪", "type": "consumable", "cost_odds": 100, "cost_gems": 0, "desc": "Restores 50% HP instantly", "effect": { "heal_pct": 50 }, "max_stack": 10 },
+    { "id": "full_restore", "name": "Full Restore", "emoji": "❤️‍🩹", "type": "consumable", "cost_odds": 500, "cost_gems": 0, "desc": "Fully restores HP", "effect": { "heal_pct": 100 }, "max_stack": 5 },
+    { "id": "stamina_drink", "name": "Stamina Drink", "emoji": "⚡", "type": "consumable", "cost_odds": 200, "cost_gems": 0, "desc": "Resets all cooldowns", "effect": { "reset_cooldowns": true }, "max_stack": 3 },
+    
+    { "id": "iron_sword", "name": "Iron Sword", "emoji": "⚔️", "type": "gear", "slot": "weapon", "cost_odds": 2000, "cost_gems": 0, "desc": "+10 Attack", "stats": { "attack": 10 } },
+    { "id": "steel_sword", "name": "Steel Sword", "emoji": "🗡️", "type": "gear", "slot": "weapon", "cost_odds": 8000, "cost_gems": 0, "desc": "+25 Attack", "stats": { "attack": 25 } },
+    { "id": "mythril_blade", "name": "Mythril Blade", "emoji": "✨🗡️", "type": "gear", "slot": "weapon", "cost_odds": 0, "cost_gems": 50, "desc": "+50 Attack, +10% Crit", "stats": { "attack": 50, "crit_chance": 10 } },
+    
+    { "id": "leather_armor", "name": "Leather Armor", "emoji": "🦺", "type": "gear", "slot": "armor", "cost_odds": 1500, "cost_gems": 0, "desc": "+8 Defense", "stats": { "defense": 8 } },
+    { "id": "chainmail", "name": "Chainmail", "emoji": "⛓️", "type": "gear", "slot": "armor", "cost_odds": 6000, "cost_gems": 0, "desc": "+20 Defense", "stats": { "defense": 20 } },
+    { "id": "plate_armor", "name": "Plate Armor", "emoji": "🛡️", "type": "gear", "slot": "armor", "cost_odds": 20000, "cost_gems": 0, "desc": "+40 Defense", "stats": { "defense": 40 } },
+    
+    { "id": "power_ring", "name": "Ring of Power", "emoji": "💍⚡", "type": "gear", "slot": "ring", "cost_odds": 0, "cost_gems": 30, "desc": "+15 Attack, +5 Defense", "stats": { "attack": 15, "defense": 5 } },
+    { "id": "life_ring", "name": "Ring of Life", "emoji": "💍❤️", "type": "gear", "slot": "ring", "cost_odds": 0, "cost_gems": 30, "desc": "+30 HP, +5 Defense", "stats": { "hp": 30, "defense": 5 } },
+    
+    { "id": "xp_boost", "name": "XP Boost Scroll", "emoji": "📜⭐", "type": "consumable", "cost_odds": 0, "cost_gems": 10, "desc": "2x XP for 1 hour", "effect": { "xp_multiplier": 2, "duration_minutes": 60 }, "max_stack": 5 },
+    { "id": "odds_boost", "name": "Odds Boost Scroll", "emoji": "📜🪙", "type": "consumable", "cost_odds": 0, "cost_gems": 10, "desc": "2x Odds from battles for 1 hour", "effect": { "odds_multiplier": 2, "duration_minutes": 60 }, "max_stack": 5 },
+    
+    { "id": "shield_charm", "name": "Anti-Steal Shield", "emoji": "🛡️✨", "type": "consumable", "cost_odds": 500, "cost_gems": 0, "desc": "8-hour protection from stealing", "effect": { "shield_hours": 8 }, "max_stack": 5 },
+    
+    { "id": "common_crate", "name": "Common Crate", "emoji": "📦", "type": "crate", "cost_odds": 500, "cost_gems": 0, "desc": "Basic rewards", "craftable_only": false },
+    { "id": "rare_crate", "name": "Rare Crate", "emoji": "🎁", "type": "crate", "cost_odds": 2000, "cost_gems": 0, "desc": "Better drop rates", "craftable_only": false },
+    { "id": "epic_crate", "name": "Epic Crate", "emoji": "🎀", "type": "crate", "cost_odds": 0, "cost_gems": 15, "desc": "Premium rewards", "craftable_only": false },
+    
+    { "id": "starter_crate", "name": "Welcome Crate", "emoji": "🎊", "type": "crate", "cost_odds": 0, "cost_gems": 0, "desc": "New player gift", "craftable_only": true },
+    { "id": "daily_crate", "name": "Daily Crate", "emoji": "📅", "type": "crate", "cost_odds": 0, "cost_gems": 0, "desc": "Daily login bonus", "craftable_only": true }
+  ]
+}
