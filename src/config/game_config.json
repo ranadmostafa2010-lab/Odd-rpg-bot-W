@@ -1,335 +1,136 @@
 {
-  "enemies": {
-    "common": {
-      "slime": {
-        "name": "Slime",
-        "emoji": "💧",
-        "min_hp": 80,
-        "max_hp": 150,
-        "min_reward": 200,
-        "max_reward": 500,
-        "damage": "15-25",
-        "exp": 10,
-        "spawn_chance": 35
-      },
-      "goblin": {
-        "name": "Goblin",
-        "emoji": "👺",
-        "min_hp": 100,
-        "max_hp": 180,
-        "min_reward": 300,
-        "max_reward": 700,
-        "damage": "20-30",
-        "exp": 15,
-        "spawn_chance": 25
-      },
-      "skeleton": {
-        "name": "Skeleton",
-        "emoji": "💀",
-        "min_hp": 120,
-        "max_hp": 200,
-        "min_reward": 400,
-        "max_reward": 800,
-        "damage": "25-35",
-        "exp": 20,
-        "spawn_chance": 20
-      }
-    },
-    "rare": {
-      "orc": {
-        "name": "Orc Warrior",
-        "emoji": "👹",
-        "min_hp": 200,
-        "max_hp": 350,
-        "min_reward": 800,
-        "max_reward": 1500,
-        "damage": "35-50",
-        "exp": 35,
-        "spawn_chance": 10
-      },
-      "witch": {
-        "name": "Dark Witch",
-        "emoji": "🧙‍♀️",
-        "min_hp": 180,
-        "max_hp": 300,
-        "min_reward": 700,
-        "max_reward": 1300,
-        "damage": "30-45",
-        "exp": 30,
-        "spawn_chance": 8
-      }
-    },
-    "epic": {
-      "wyvern": {
-        "name": "Wyvern",
-        "emoji": "🐲",
-        "min_hp": 400,
-        "max_hp": 600,
-        "min_reward": 2000,
-        "max_reward": 4000,
-        "damage": "60-90",
-        "exp": 80,
-        "spawn_chance": 3
-      },
-      "demon": {
-        "name": "Lesser Demon",
-        "emoji": "😈",
-        "min_hp": 350,
-        "max_hp": 550,
-        "min_reward": 1800,
-        "max_reward": 3500,
-        "damage": "55-85",
-        "exp": 70,
-        "spawn_chance": 2
-      }
-    },
-    "legendary": {
-      "dragon": {
-        "name": "Ancient Dragon",
-        "emoji": "🐉",
-        "min_hp": 800,
-        "max_hp": 1200,
-        "min_reward": 5000,
-        "max_reward": 10000,
-        "damage": "100-150",
-        "exp": 200,
-        "spawn_chance": 0.5
-      }
+  "_edit_tip": "Change any value here. Bot reads this on every command — no restart needed.",
+
+  "bot": {
+    "name": "ODD RPG Bot",
+    "prefix": "/",
+    "maintenance_mode": false,
+    "maintenance_message": "🔧 Bot is under maintenance. Back soon!"
+  },
+
+  "currency": {
+    "odds_name": "Odds",  "odds_emoji": "🪙",
+    "gems_name": "Gems",  "gems_emoji": "💎"
+  },
+
+  "new_player": {
+    "starting_odds": 500,
+    "starting_gems": 0,
+    "starting_hp": 100,
+    "starting_max_hp": 100,
+    "starting_attack": 15,
+    "starting_defense": 10,
+    "starter_pet": "fire_fox"
+  },
+
+  "leveling": {
+    "xp_base": 100,
+    "xp_multiplier": 1.5,
+    "_example": "Level 1→2=100xp, 2→3=150xp, 3→4=225xp"
+  },
+
+  "daily": {
+    "base_odds": 1000,
+    "base_gems": 1,
+    "streak_odds_per_day": 100,
+    "streak_gems_every_7_days": 2,
+    "max_streak": 30,
+    "cooldown_hours": 20
+  },
+
+  "offline_grind": {
+    "enabled": true,
+    "max_hours": 8,
+    "odds_per_hour": 150,
+    "xp_per_hour": 80,
+    "material_chance_pct": 15
+  },
+
+  "combat": {
+    "crit_chance": 10,
+    "crit_multiplier": 1.75,
+    "actions": {
+      "attack":       { "dmg_min": 90,  "dmg_max": 110, "miss_chance": 0,  "desc": "Reliable normal attack" },
+      "heavy_attack": { "dmg_min": 140, "dmg_max": 190, "miss_chance": 25, "desc": "Big damage, 25% miss chance" },
+      "defend":       { "reduction_pct": 65, "self_heal_pct": 5,           "desc": "Block 65% damage + 5% self-heal" },
+      "heal":         { "heal_pct": 22, "cooldown_turns": 3,               "desc": "Restore 22% HP (3-turn cooldown)" },
+      "special":      { "multiplier": 1.8, "cooldown_turns": 4,            "desc": "Pet special attack (requires pet)" },
+      "flee":         { "success_chance": 50,                              "desc": "50% escape chance" }
     }
   },
-  "pets": {
-    "common": [
-      {"name": "Puppy", "emoji": "🐕", "base_atk": 5},
-      {"name": "Kitten", "emoji": "🐈", "base_atk": 5},
-      {"name": "Bunny", "emoji": "🐇", "base_atk": 6},
-      {"name": "Hamster", "emoji": "🐹", "base_atk": 4}
-    ],
-    "rare": [
-      {"name": "Wolf", "emoji": "🐺", "base_atk": 15},
-      {"name": "Fox", "emoji": "🦊", "base_atk": 14},
-      {"name": "Eagle", "emoji": "🦅", "base_atk": 16},
-      {"name": "Snake", "emoji": "🐍", "base_atk": 15}
-    ],
-    "epic": [
-      {"name": "Tiger", "emoji": "🐅", "base_atk": 30},
-      {"name": "Bear", "emoji": "🐻", "base_atk": 32},
-      {"name": "Lion", "emoji": "🦁", "base_atk": 35},
-      {"name": "Gorilla", "emoji": "🦍", "base_atk": 33}
-    ],
-    "legendary": [
-      {"name": "Dragon", "emoji": "🐲", "base_atk": 60},
-      {"name": "Phoenix", "emoji": "🔥", "base_atk": 65},
-      {"name": "Unicorn", "emoji": "🦄", "base_atk": 62},
-      {"name": "Kraken", "emoji": "🦑", "base_atk": 70}
-    ],
-    "mythic": [
-      {"name": "Godzilla", "emoji": "🦖", "base_atk": 120},
-      {"name": "Leviathan", "emoji": "🐋", "base_atk": 115},
-      {"name": "Behemoth", "emoji": "🐘", "base_atk": 110},
-      {"name": "Archangel", "emoji": "👼", "base_atk": 125}
+
+  "pve": {
+    "cooldown_minutes": 2,
+    "random_boss_chance_pct": 8,
+    "difficulties": {
+      "easy":   { "hp_mult": 0.6, "atk_mult": 0.6, "odds_mult": 0.8, "xp_mult": 0.8, "mat_mult": 0.5  },
+      "normal": { "hp_mult": 1.0, "atk_mult": 1.0, "odds_mult": 1.0, "xp_mult": 1.0, "mat_mult": 1.0  },
+      "hard":   { "hp_mult": 1.5, "atk_mult": 1.4, "odds_mult": 1.5, "xp_mult": 1.5, "mat_mult": 1.5  },
+      "insane": { "hp_mult": 2.5, "atk_mult": 2.0, "odds_mult": 2.5, "xp_mult": 2.5, "mat_mult": 2.5  },
+      "chaos":  { "hp_mult": 4.0, "atk_mult": 3.0, "odds_mult": 4.0, "xp_mult": 4.0, "mat_mult": 4.0, "min_level": 30 }
+    }
+  },
+
+  "pvp": {
+    "cooldown_minutes": 10,
+    "elo_range": 100,
+    "matchmaking_timeout_seconds": 90,
+    "win_odds": 250,
+    "win_xp": 100
+  },
+
+  "bank": {
+    "tiers": [
+      { "tier": 1, "name": "Basic",    "emoji": "🏦", "max": 10000,  "interest_pct": 0.5, "cost": 0       },
+      { "tier": 2, "name": "Silver",   "emoji": "🏧", "max": 50000,  "interest_pct": 1.0, "cost": 5000    },
+      { "tier": 3, "name": "Gold",     "emoji": "💰", "max": 200000, "interest_pct": 2.0, "cost": 25000   },
+      { "tier": 4, "name": "Platinum", "emoji": "💎", "max": 500000, "interest_pct": 3.5, "cost": 100000  },
+      { "tier": 5, "name": "Diamond",  "emoji": "🌟", "max": 9999999,"interest_pct": 5.0, "cost": 500000  }
     ]
   },
-  "crates": {
-    "basic": {
-      "name": "Basic Crate",
-      "emoji": "📦",
-      "cost": 500,
-      "drops": {"common": 70, "rare": 25, "epic": 5}
-    },
-    "premium": {
-      "name": "Premium Crate",
-      "emoji": "🎁",
-      "cost": 1500,
-      "drops": {"common": 30, "rare": 50, "epic": 18, "legendary": 2}
-    },
-    "legendary": {
-      "name": "Legendary Crate",
-      "emoji": "🏆",
-      "cost": 5000,
-      "drops": {"rare": 40, "epic": 45, "legendary": 14, "mythic": 1}
-    },
-    "godly": {
-      "name": "Godly Crate",
-      "emoji": "👑",
-      "cost": 15000,
-      "drops": {"epic": 30, "legendary": 50, "mythic": 20}
-    }
+
+  "stealing": {
+    "cooldown_minutes": 30,
+    "success_chance_pct": 40,
+    "max_steal_pct": 20,
+    "shield_cost": 500,
+    "shield_hours": 8,
+    "fail_penalty": 200
   },
-  "bank_tiers": {
-    "basic": {
-      "name": "Basic",
-      "interest": 0.02,
-      "max_balance": 50000,
-      "upgrade_cost": 10000,
-      "emoji": "🥉"
-    },
-    "silver": {
-      "name": "Silver",
-      "interest": 0.03,
-      "max_balance": 200000,
-      "upgrade_cost": 50000,
-      "emoji": "🥈"
-    },
-    "gold": {
-      "name": "Gold",
-      "interest": 0.05,
-      "max_balance": 1000000,
-      "upgrade_cost": 250000,
-      "emoji": "🥇"
-    },
-    "diamond": {
-      "name": "Diamond",
-      "interest": 0.08,
-      "max_balance": 10000000,
-      "upgrade_cost": 0,
-      "emoji": "💎"
-    }
+
+  "trading": {
+    "fee_pct": 5,
+    "expire_minutes": 15,
+    "max_pending": 3
   },
-  "shop_items": {
-    "health_potion": {
-      "name": "Health Potion",
-      "emoji": "🧪",
-      "price": 200,
-      "effect": "heal",
-      "value": 50,
-      "description": "Restores 50 HP"
-    },
-    "mega_potion": {
-      "name": "Mega Potion",
-      "emoji": "⚗️",
-      "price": 800,
-      "effect": "heal",
-      "value": 200,
-      "description": "Restores 200 HP"
-    },
-    "shield": {
-      "name": "Protection Shield",
-      "emoji": "🛡️",
-      "price": 1500,
-      "effect": "shield",
-      "duration": 24,
-      "description": "Prevents stealing for 24 hours"
-    },
-    "xp_boost": {
-      "name": "XP Boost",
-      "emoji": "📈",
-      "price": 3000,
-      "effect": "xp_boost",
-      "multiplier": 2,
-      "duration": 1,
-      "description": "2x XP for 1 hour"
-    },
-    "luck_charm": {
-      "name": "Luck Charm",
-      "emoji": "🍀",
-      "price": 5000,
-      "effect": "luck",
-      "duration": 1,
-      "description": "Better crate drops for 1 hour"
-    }
+
+  "guild": {
+    "create_cost": 10000,
+    "max_members_base": 20,
+    "chest_contribution_pct": 5,
+    "war_duration_hours": 24
   },
-  "promo_codes": {
-    "STARTER2024": {
-      "points": 5000,
-      "uses": 1,
-      "active": true,
-      "expires": "2024-12-31"
-    },
-    "DRAGON": {
-      "points": 10000,
-      "uses": 1,
-      "active": true,
-      "pet": {
-        "name": "Baby Dragon",
-        "rarity": "epic",
-        "atk": 35
-      }
-    },
-    "MEGA": {
-      "points": 25000,
-      "uses": 1,
-      "active": true,
-      "items": {
-        "legendary_crate": 2,
-        "shield": 1
-      }
-    },
-    "TERMUX": {
-      "points": 1000,
-      "uses": 999,
-      "active": true,
-      "description": "Termux user bonus"
-    }
+
+  "casino": {
+    "min_bet": 100,
+    "max_bet": 100000
   },
-  "ranks": {
-    "bronze": {"min_elo": 0, "max_elo": 999, "emoji": "🥉"},
-    "silver": {"min_elo": 1000, "max_elo": 1499, "emoji": "🥈"},
-    "gold": {"min_elo": 1500, "max_elo": 1999, "emoji": "🥇"},
-    "platinum": {"min_elo": 2000, "max_elo": 2499, "emoji": "💠"},
-    "diamond": {"min_elo": 2500, "max_elo": 2999, "emoji": "💎"},
-    "master": {"min_elo": 3000, "max_elo": 3499, "emoji": "👑"},
-    "grandmaster": {"min_elo": 3500, "max_elo": 9999, "emoji": "🏆"}
-  },
-  "bosses": {
-    "world_bosses": [
-      {
-        "name": "World Ender",
-        "emoji": "🌑",
-        "base_hp": 50000,
-        "damage": "200-300",
-        "rewards": {
-          "points_min": 10000,
-          "points_max": 25000,
-          "guaranteed_legendary": true
-        }
-      },
-      {
-        "name": "Chaos Titan",
-        "emoji": "🗿",
-        "base_hp": 75000,
-        "damage": "300-450",
-        "rewards": {
-          "points_min": 20000,
-          "points_max": 50000,
-          "guaranteed_mythic": false
-        }
-      }
+
+  "prestige": {
+    "required_level": 50,
+    "tiers": [
+      { "level": 1, "badge": "⭐",  "title": "Star Reborn",   "odds_x": 1.10, "xp_x": 1.10, "gems": 20  },
+      { "level": 2, "badge": "🌟",  "title": "Nova Reborn",   "odds_x": 1.20, "xp_x": 1.20, "gems": 40  },
+      { "level": 3, "badge": "💫",  "title": "Comet Reborn",  "odds_x": 1.35, "xp_x": 1.35, "gems": 75  },
+      { "level": 4, "badge": "🔥",  "title": "Flame Reborn",  "odds_x": 1.50, "xp_x": 1.50, "gems": 100 },
+      { "level": 5, "badge": "👑",  "title": "Crown Reborn",  "odds_x": 1.75, "xp_x": 1.75, "gems": 150 },
+      { "level": 6, "badge": "🌌",  "title": "Void Reborn",   "odds_x": 2.00, "xp_x": 2.00, "gems": 200 },
+      { "level": 7, "badge": "🏆",  "title": "Legend Reborn", "odds_x": 2.50, "xp_x": 2.50, "gems": 300 }
     ]
   },
-  "tutorial": {
-    "pages": [
-      {
-        "title": "🎮 Welcome to ODD RPG!",
-        "content": "Your journey begins here! This is a multiplayer RPG bot where you can:\n\n⚔️ Battle NPCs and other players\n🤝 Trade with anyone\n🥷 Steal from other players\n👥 Join group battles\n🏆 Climb the ranked ladder"
-      },
-      {
-        "title": "⚔️ Battle System",
-        "content": "Battles are turn-based with 4 options:\n\n⚔️ ATTACK - Deal damage based on power + pet\n🛡️ DEFEND - Reduce incoming damage by 70%\n💚 HEAL - Restore HP (limited uses)\n🏃 FLEE - 60% chance to escape\n\nWin to earn points and EXP!"
-      },
-      {
-        "title": "🐾 Pet System",
-        "content": "Pets boost your combat power:\n\n📦 Open crates to get pets\n⭐ 5 rarities: Common → Mythic\n⚔️ Each pet adds ATK to your damage\n🔄 Merge 3 same pets to upgrade rarity\n👆 Equip your best pet with /equip"
-      },
-      {
-        "title": "💰 Economy",
-        "content": "Manage your wealth:\n\n💵 Points - Main currency\n🏦 Bank - Safe from steals, earns interest\n📦 Crates - Buy to get pets\n🏪 Shop - Potions, shields, boosts\n🥷 Stealing - Risk/reward from others"
-      },
-      {
-        "title": "🏆 PvP Ranked",
-        "content": "Compete against other players:\n\n⚔️ /ranked to find a match\n📊 ELO system - Win = +points, Lose = -points\n🥉 Ranks: Bronze → Grandmaster\n🎁 Season rewards based on rank\n⏱️ 60 seconds per turn"
-      },
-      {
-        "title": "👥 Group Battles",
-        "content": "Team up with friends:\n\n📢 /groupbattle to start\n👥 2-5 players per group\n👹 Fight powerful raid bosses\n💎 Better rewards than solo\n⏱️ 5 minute timeout"
-      },
-      {
-        "title": "🤝 Trading & Stealing",
-        "content": "Interact with others:\n\n/trade [player] - Send trade request\nOffer pets, points, or both\n/steal [player] - Try to steal points\n🛡️ Shields block steals\n⏱️ 30min cooldown on steals"
-      },
-      {
-        "title": "🎁 Codes & Daily",
-        "content": "Free rewards:\n\n/code [CODE] - Redeem promo codes\n/daily - Claim every 24 hours\n📈 Rewards scale with your level\n💎 Special events give bonus codes"
-      }
-    ]
+
+  "leaderboard": {
+    "top_count": 10,
+    "categories": ["elo", "level", "odds", "pvp_wins", "bosses_killed", "prestige"]
   }
 }
